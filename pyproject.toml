@@ -1,0 +1,37 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synoptic-paper-engine"
+version = "1.0.0"
+authors = [
+  { name="Seu Nome", email="seu@email.com" },
+]
+description = "An AI-powered command-line toolkit for advanced academic literature review."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+# AQUI VÃO AS DEPENDÊNCIAS DO SEU requirements.txt
+dependencies = [
+    "requests",
+    "colorama",
+    "tqdm",
+    "llama-cpp-python",
+    "numpy",
+    "PyYAML",
+    "Jinja2",
+    "huggingface-hub",
+    # Adicione qualquer outra dependência direta aqui
+]
+
+[project.scripts]
+# AQUI ESTÁ A MÁGICA: cria um comando de terminal
+spe = "spe.main:main_menu"
