@@ -1,15 +1,20 @@
 # find_papers.py
 
+# spe/main.py
+
 import requests
-import parse_query as pq
-import preview_step as ps
 import time
 import csv
 import sys
 import os
 from colorama import init, Fore, Style
-import help_menu as hm
-import statistics_analyzer as sa
+
+# Imports relative to the current package (notice the '.')
+from . import parse_query as pq
+from . import preview_step as ps
+from . import help_menu as hm
+from . import statistics_analyzer as sa
+# ...
 
 # Initializes colorama
 init(autoreset=True)
@@ -209,7 +214,7 @@ def main_menu():
             input_folder = "results"
             print(f"\n{Fore.GREEN}✅ Starting AI-based filtering...")
             try:
-                import llama_filter as lf
+                from . import llama_filter as lf
                 lf.filter_with_llama(input_folder)
                 print(f"\n{Fore.GREEN}🏁 AI filtering finished. Check the 'llama_filtered' folder for results.")
             except ImportError:
@@ -227,4 +232,5 @@ def main_menu():
             print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 1 to 5.")
 
 if __name__ == "__main__":
+
     main_menu()
