@@ -1,11 +1,10 @@
 import os
 import csv
-import json
 import sys
 import re
 from contextlib import contextmanager
 from colorama import Fore, Style, init
-from tqdm import tqdm  # <-- MUDANÇA: Importa a biblioteca tqdm
+from tqdm import tqdm
 
 # Initializes colorama for a more visually appealing terminal output.
 init(autoreset=True)
@@ -37,7 +36,7 @@ try:
         )
 except ImportError:
     print(f"{Fore.RED}❌ ERROR: The 'llama-cpp-python' library is not installed.")
-    print(f"Please install it using the following command: {Fore.GREEN}pip install llama-cpp-python{Style.RESET_ALL}")
+    print(f"Please install it using the following command: {Fore.GREEN}pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu{Style.RESET_ALL}")
     llm = None
 except Exception as e:
     print(f"{Fore.RED}❌ ERROR: Could not load the Llama model.")
@@ -134,9 +133,9 @@ def get_llama_completion(expert_persona, research_topic, criteria_list, title, a
     return "False"
 
 
-def filter_with_llama(input_folder):
+def filter_with_llama(input_folder, output_folder):
     """
-    Reads CSV files, applies Llama-based filtering, and saves results incrementally.
+    Reads CSV files, applies Llama-based filtering, and saves results incrementally to a CSV.
     """
     if not llm:
         print(f"{Fore.RED}Llama model not loaded. Skipping this step.")
@@ -169,9 +168,8 @@ def filter_with_llama(input_folder):
         else:
             print(f"\n{Fore.RED}Invalid option. Please choose 1, 2, or 3.{Style.RESET_ALL}")
 
-    output_folder = "llama_filtered"
     os.makedirs(output_folder, exist_ok=True)
-    output_path = os.path.join(output_folder, "llama_filtered_articles.jsonl")
+    output_path = os.path.join(output_folder, "llama_filtered_articles.csv")
     print(f"\n{Fore.CYAN}Results will be saved incrementally to: {output_path}{Style.RESET_ALL}")
 
     if not os.path.exists(input_folder):
@@ -183,23 +181,21 @@ def filter_with_llama(input_folder):
         print(f"{Fore.YELLOW}⚠️ No CSV files found in '{input_folder}'. Skipping Llama filtering.")
         return
 
-    # <-- MUDANÇA: Contar o total de artigos antes de começar
     total_articles = 0
     print("Calculating total number of articles...")
     for filename in csv_files:
         filepath = os.path.join(input_folder, filename)
         with open(filepath, mode='r', encoding='utf-8') as f:
-            # Soma as linhas e subtrai 1 para o cabeçalho
             total_articles += sum(1 for line in f) - 1
     
     articles_found_count = 0
     
-    # <-- MUDANÇA: Abre o arquivo de saída
-    with open(output_path, "w", encoding="utf-8") as outfile:
-        # <-- MUDANÇA: Inicia a barra de progresso
+    with open(output_path, "w", newline='', encoding="utf-8") as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(["Query", "Title", "Year", "Citations", "Authors", "URL"])
+
         with tqdm(total=total_articles, desc="Filtering Articles", unit=" article") as pbar:
             for filename in csv_files:
-                # Atualiza a descrição da barra com o arquivo atual
                 pbar.set_description(f"Processing {os.path.basename(filename)}")
                 filepath = os.path.join(input_folder, filename)
                 
@@ -209,30 +205,25 @@ def filter_with_llama(input_folder):
                         query = row.get("Query", "")
                         title = row.get("Title", "")
                         abstract = row.get("Abstract", "")
+                        year = row.get("Year", "")
+                        citations = row.get("Citations", "")
+                        authors = row.get("Authors", "")
                         url = row.get("URL", "")
 
                         if not title or not abstract:
-                            pbar.update(1) # Pula o artigo, mas atualiza a barra
+                            pbar.update(1)
                             continue
                         
                         llama_response = get_llama_completion(expert_persona, research_topic, criteria_list, title, abstract)
                         normalized_response = llama_response.strip().lower()
 
                         if re.search(r'\btrue\b', normalized_response) and not re.search(r'\bfalse\b', normalized_response):
-                            result_data = {
-                                "query": query,
-                                "title": title,
-                                "abstract": abstract,
-                                "url": url,
-                                "llama_decision": llama_response
-                            }
-                            outfile.write(json.dumps(result_data, ensure_ascii=False) + '\n')
+                            writer.writerow([query, title, year, citations, authors, url])
                             articles_found_count += 1
                         
-                        # <-- MUDANÇA: Atualiza a barra de progresso em 1, independentemente do resultado
                         pbar.update(1)
 
     print(f"\n{Fore.GREEN}Done. Found and saved {articles_found_count} relevant articles.{Style.RESET_ALL}")
 
 if __name__ == "__main__":
-    filter_with_llama("input_data")
+    filter_with_llama("input_data", "output_data")

@@ -1,5 +1,3 @@
-# find_papers.py
-
 # spe/main.py
 
 import requests
@@ -38,15 +36,12 @@ def display_banner():
                  ╚═════╝ ╚═╝      ╚══════╝
 """
     
-    # banner_lines = banner_art.strip('\n').split('\n')
-    # max_banner_width = max(len(line) for line in banner_lines) if banner_lines else 80
-
     tool_name = "Synoptic Paper Engine\n"
     desc_lines = [
        "This script is an automated tool for searching and filtering",
-        "academic papers using the Semantic Scholar API. It supports",
-         " complex queries, citation and year filters, and generates",
-                            "organized CSV outputs."
+       "academic papers using the Semantic Scholar API. It supports",
+        " complex queries, citation and year filters, and generates",
+                     "organized CSV outputs."
     ]
 
     banner_lines = desc_lines[0].strip('\n').split('\n')
@@ -62,6 +57,33 @@ def display_banner():
     
     # Separador final em CIANO
     print(f"\n{Fore.CYAN}{Style.BRIGHT}{'=' * max_banner_width}{Style.RESET_ALL}\n")
+
+def get_unique_folder(base_folder):
+    """
+    Checks for the existence of a folder and prompts the user to
+    create a new one or overwrite the existing.
+    """
+    if not os.path.exists(base_folder):
+        print(f"{Fore.GREEN}Creating folder '{base_folder}'.")
+        os.makedirs(base_folder)
+        return base_folder
+
+    print(f"\n{Fore.YELLOW}⚠️  The folder '{base_folder}' already exists.")
+    while True:
+        choice = input(f"{Fore.YELLOW}Do you want to (1) Create a new folder or (2) Overwrite existing files?{Style.RESET_ALL} ")
+        if choice == "1":
+            count = 1
+            while os.path.exists(f"{base_folder}-{count}"):
+                count += 1
+            new_folder = f"{base_folder}-{count}"
+            os.makedirs(new_folder)
+            print(f"{Fore.GREEN}✅ Creating new folder '{new_folder}'.")
+            return new_folder
+        elif choice == "2":
+            print(f"{Fore.RED}🛑 Warning: Existing files in '{base_folder}' may be overwritten.")
+            return base_folder
+        else:
+            print(f"{Fore.RED}❌ Invalid choice. Please enter 1 or 2.")
 
 def get_with_backoff(url, headers, max_retries=5):
     """Performs an HTTP GET request with exponential backoff for rate limiting."""
@@ -93,15 +115,15 @@ def run_bibliographic_search():
             hm.show_autosearch_help()
             continue
         if not query_str.strip():
-            print(f"{Fore.RED}❌ Query cannot be empty. Exiting.")
-            sys.exit(1)
+            print(f"{Fore.RED}❌ Query cannot be empty. Returning to main menu.")
+            return # <-- CHANGED THIS LINE
         break
 
     try:
         queries = pq.parse_query(query_str)
     except Exception as e:
         print(f"{Fore.RED}❌ Error parsing the query: {e}")
-        sys.exit(1)
+        return
 
     use_citation_filter = input(f"\n{Fore.YELLOW}Do you want to set a minimum number of citations? (y/n): ").lower()
     min_citations = 0
@@ -142,7 +164,7 @@ def run_bibliographic_search():
 
     if not ps.ask_confirmation(queries, timeout=10):
         print(f"{Fore.RED}❌ Operation canceled by user.")
-        sys.exit()
+        return
     else:
         print(f"{Fore.GREEN}✅ Starting the search...")
 
@@ -150,7 +172,12 @@ def run_bibliographic_search():
     if API_KEY:
         headers["x-api-key"] = API_KEY
 
-    output_statistics = os.path.join('./', "output_statistics.csv")
+    output_folder = get_unique_folder("results")
+    output_statistics = os.path.join(output_folder, "output_statistics.csv")
+
+    with open(output_statistics, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Query", "Total Articles", "Filtered Articles"])
 
     for query in queries:
         print(f"\n{Fore.BLUE}🔎 Searching for articles on: {Style.BRIGHT}{query}{Style.RESET_ALL}")
@@ -172,8 +199,6 @@ def run_bibliographic_search():
             filtered_papers += len(filtered)
 
             if filtered:
-                output_folder = "results"
-                os.makedirs(output_folder, exist_ok=True)
                 sanitized_query = "".join(c for c in query if c.isalnum() or c in (' ', '-', '_')).rstrip()
                 output_file = os.path.join(output_folder, f"{sanitized_query}-{batch + 1}.csv")
 
@@ -190,8 +215,6 @@ def run_bibliographic_search():
 
         with open(output_statistics, mode='a', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
-            if file.tell() == 0:
-                writer.writerow(["Query", "Total Articles", "Filtered Articles"])
             writer.writerow([query, total_paper, filtered_papers])
     print(f"\n{Fore.GREEN}🏁 Finished.")
 
@@ -199,6 +222,9 @@ def main_menu():
     """Displays the main menu and handles user choices."""
     display_banner()
     while True:
+        # Clear the terminal for a cleaner menu view
+        os.system('cls' if os.name == 'nt' else 'clear')
+        display_banner()
         print(f"\n{Fore.CYAN}--- Main Menu ---")
         print(f"{Fore.YELLOW}1. Run Bibliographic Search")
         print(f"{Fore.YELLOW}2. Filter Papers with AI (Llama)")
@@ -211,18 +237,110 @@ def main_menu():
         if choice == "1":
             run_bibliographic_search()
         elif choice == "2":
-            input_folder = "results"
+            # New logic to choose the results folder to filter
+            base_folder = "results"
+            all_entries = os.listdir('.')
+            potential_folders = [d for d in all_entries if os.path.isdir(d) and d.startswith(base_folder)]
+            
+            if not potential_folders:
+                print(f"{Fore.RED}❌ No 'results' folders found. Please run a search first.")
+                input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                continue
+
+            print(f"\n{Fore.CYAN}Please choose a 'results' folder to filter:{Style.RESET_ALL}")
+            for i, folder_name in enumerate(potential_folders):
+                print(f"{Fore.YELLOW}{i+1}. {folder_name}")
+            
+            while True:
+                try:
+                    choice_num = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}"))
+                    if 1 <= choice_num <= len(potential_folders):
+                        input_folder = potential_folders[choice_num - 1]
+                        break
+                    else:
+                        print(f"{Fore.RED}Invalid number. Please try again.")
+                except ValueError:
+                    print(f"{Fore.RED}Invalid input. Please enter a number.")
+            
+            output_folder = get_unique_folder("llama_filtered")
             print(f"\n{Fore.GREEN}✅ Starting AI-based filtering...")
             try:
                 from . import llama_filter as lf
-                lf.filter_with_llama(input_folder)
-                print(f"\n{Fore.GREEN}🏁 AI filtering finished. Check the 'llama_filtered' folder for results.")
+                lf.filter_with_llama(input_folder, output_folder)
+                print(f"\n{Fore.GREEN}🏁 AI filtering finished. Check the '{output_folder}' folder for results.")
+                input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
             except ImportError:
                 print(f"{Fore.RED}❌ Error: 'llama_filter.py' not found. Make sure the file is in the same directory.")
+                input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
             except Exception as e:
                 print(f"{Fore.RED}❌ An error occurred during AI filtering: {e}")
+                input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+
         elif choice == "3":
-            sa.run_statistics_analyzer()
+            print(f"\n{Fore.CYAN}--- Choose analysis type ---")
+            print(f"{Fore.YELLOW}1. Analyze Bibliographic Search results")
+            print(f"{Fore.YELLOW}2. Analyze AI Filter results")
+            print(f"{Fore.YELLOW}0. Return to Main Menu")
+            analysis_choice = input(f"\n{Fore.CYAN}Enter your choice (0-2): {Style.RESET_ALL}")
+
+            if analysis_choice == "1":
+                base_folder = "results"
+                
+                all_entries = os.listdir('.')
+                potential_folders = [d for d in all_entries if os.path.isdir(d) and d.startswith(base_folder)]
+                
+                if not potential_folders:
+                    print(f"{Fore.RED}❌ No 'results' folders found.")
+                    continue
+                
+                print(f"\n{Fore.CYAN}Please choose a folder to analyze:{Style.RESET_ALL}")
+                for i, folder_name in enumerate(potential_folders):
+                    print(f"{Fore.YELLOW}{i+1}. {folder_name}")
+                
+                while True:
+                    try:
+                        choice_num = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}"))
+                        if 1 <= choice_num <= len(potential_folders):
+                            folder_path = potential_folders[choice_num - 1]
+                            sa.analyze_autosearch(folder_path)
+                            input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                            break
+                        else:
+                            print(f"{Fore.RED}Invalid number. Please try again.")
+                    except ValueError:
+                        print(f"{Fore.RED}Invalid input. Please enter a number.")
+            elif analysis_choice == "2":
+                base_folder = "llama_filtered"
+                
+                all_entries = os.listdir('.')
+                potential_folders = [d for d in all_entries if os.path.isdir(d) and d.startswith(base_folder)]
+                
+                if not potential_folders:
+                    print(f"{Fore.RED}❌ No 'llama_filtered' folders found.")
+                    continue
+                
+                print(f"\n{Fore.CYAN}Please choose a folder to analyze:{Style.RESET_ALL}")
+                for i, folder_name in enumerate(potential_folders):
+                    print(f"{Fore.YELLOW}{i+1}. {folder_name}")
+
+                while True:
+                    try:
+                        choice_num = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}"))
+                        if 1 <= choice_num <= len(potential_folders):
+                            folder_path = potential_folders[choice_num - 1]
+                            sa.analyze_llama_csv_results(folder_path)
+                            input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                            break
+                        else:
+                            print(f"{Fore.RED}Invalid number. Please try again.")
+                    except ValueError:
+                        print(f"{Fore.RED}Invalid input. Please enter a number.")
+            elif analysis_choice == "0":
+                continue
+
+            else:
+                print(f"{Fore.RED}❌ Invalid choice. Please enter 0, 1 or 2.")
+
         elif choice == "4":
             hm.show_help_menu()
         elif choice == "5":
@@ -232,5 +350,4 @@ def main_menu():
             print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 1 to 5.")
 
 if __name__ == "__main__":
-
     main_menu()
