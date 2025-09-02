@@ -54,7 +54,7 @@ This command will download the project and install all the required Python depen
 To update your installation to the latest version from the repository, you need to re-run the installation command with the `--upgrade` and `--no-cache-dir` flags.
 
 ```bash
-pip install --upgrade --no-cache-dir git+[https://github.com/oi-silva/synoptic-paper-engine.git](https://github.com/oi-silva/synoptic-paper-engine.git)
+pip install --upgrade --no-cache-dir git+https://github.com/oi-silva/synoptic-paper-engine.git
 ```
 
 * `--upgrade`: Tells `pip` to update the package to the newest version.
