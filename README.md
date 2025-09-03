@@ -33,19 +33,52 @@ This tool is perfect for researchers, students, and anyone who needs to quickly 
 
 ## 🔧 Installation
 
-The project is designed to be installed directly from its GitHub repository using `pip`.
+A instalação é feita diretamente do repositório GitHub usando `pip`. Abaixo estão as instruções para Windows e Linux/macOS.
 
-**Prerequisites:**
-* Python 3.8+
-* Git
+### For Windows Users
 
-To install the Synoptic Paper Engine, run the following command in your terminal:
+**Step 1: Install Prerequisites (Python and Git)**
+
+1.  **Install Python**:
+    * Go to the official Python website: [python.org/downloads/](https://www.python.org/downloads/)
+    * Download the latest installer.
+    * Run the installer and **make sure to check the box that says "Add Python to PATH"** before you click "Install Now". This is a very important step.
+
+2.  **Install Git**:
+    * Go to the official Git website: [git-scm.com/download/win](https://git-scm.com/download/win)
+    * Download and run the installer. You can safely use the default options for all installation steps.
+
+**Step 2: Install Synoptic Paper Engine**
+
+1.  Open the **Command Prompt** or **PowerShell** (you can find it in the Start Menu).
+2.  Copy and paste the following command and press Enter:
 
 ```bash
-pip install git+[https://github.com/oi-silva/synoptic-paper-engine.git](https://github.com/oi-silva/synoptic-paper-engine.git)
+pip install git+https://github.com/oi-silva/synoptic-paper-engine.git
 ```
 
-This command will download the project and install all the required Python dependencies automatically.
+### For Linux / macOS Users
+
+**Step 1: Install Prerequisites (Python and Git)**
+
+Python and Git are often pre-installed on Linux and macOS. You can check by opening your terminal and typing `python3 --version` and `git --version`. If they are not installed, follow these steps.
+
+1.  **Install Python & Git (for Debian/Ubuntu)**:
+    * Open your terminal and run the following command:
+
+    ```bash
+    sudo apt update && sudo apt install python3 python3-pip git -y
+    ```
+    * For other Linux distributions or macOS (using Homebrew), use the appropriate package manager commands.
+
+**Step 2: Install Synoptic Paper Engine**
+
+1.  Open your terminal.
+2.  Run the following command:
+
+```bash
+pip install git+https://github.com/oi-silva/synoptic-paper-engine.git
+```
 
 ---
 
@@ -64,7 +97,21 @@ pip install --upgrade --no-cache-dir git+https://github.com/oi-silva/synoptic-pa
 
 ## Usage
 
-Once installed, you can run the tool as a Python module from your terminal:
+After a successful installation, you can run the tool directly from your terminal.
+
+### On Windows
+
+1.  Open **Command Prompt** or **PowerShell**.
+2.  Type the following command to start the application:
+
+```bash
+python -m spe.main
+```
+
+### On Linux / macOS
+
+1.  Open your terminal.
+2.  Thanks to the setup process, you can use a shorter, direct command:
 
 ```bash
 spe
@@ -72,27 +119,11 @@ spe
 
 This will launch the main menu, where you can choose from the following options:
 
-#### 1. Run Bibliographic Search
-This option allows you to perform a large-scale search on Semantic Scholar. You will be prompted to:
-- Enter your complex query.
-- Set optional filters for minimum citations and publication year.
-- Configure batch size and the number of batches to retrieve.
-The results are saved as multiple CSV files inside a `results/` folder.
-
-#### 2. Filter Papers with AI (Llama)
-After running a search, use this option to apply contextual filtering.
-- First, you will choose which `results/` folder to process.
-- Then, you will be guided to create a prompt for the AI by defining:
-  - An **expert persona** (e.g., "a biochemist").
-  - A **research topic** (e.g., "the role of CRISPR in gene therapy").
-  - Specific **evaluation criteria**.
-- The AI will process each paper and save the relevant ones to a new folder named `llama_filtered/`.
-
-#### 3. Analyze Results
-This option generates and displays statistics for the papers you have collected. You can choose to analyze either a `results/` folder from a bibliographic search or a `llama_filtered/` folder from an AI filtering session.
-
-#### 4. Help / Information
-Displays a detailed help menu that explains how to construct queries, use the AI filter effectively, and understand the risks and limitations of the AI.
+1.  **Run Bibliographic Search**: Perform a large-scale search on Semantic Scholar with custom queries and filters.
+2.  **Filter Papers with AI (Llama)**: Use a local AI model to perform contextual filtering on your search results.
+3.  **Analyze Results**: Generate statistics on the papers you've collected.
+4.  **Help / Information**: View the detailed help menu.
+5.  **Exit**: Close the application.
 
 ---
 
@@ -115,7 +146,3 @@ The installer will handle these automatically, but for reference, the main depen
 * `llama-cpp-python`
 
 ---
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
