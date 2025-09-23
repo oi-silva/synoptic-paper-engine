@@ -10,13 +10,57 @@ def show_autosearch_help():
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Purpose:{Style.RESET_ALL}")
     print("   AutoSearch performs large-scale academic searches using the Semantic Scholar API.")
     print("   It automates fetching papers based on complex queries and pre-filtering by year and citations.")
+    
     print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Query Construction Rules:{Style.RESET_ALL}")
     print(f"   {Fore.GREEN}- AND{Style.RESET_ALL} : requires both terms (e.g., AI AND Physics)")
     print(f"   {Fore.GREEN}- OR{Style.RESET_ALL}  : allows either term (e.g., Graphene OR Nanotubes)")
     print(f"   {Fore.GREEN}- NOT{Style.RESET_ALL} : excludes terms (e.g., AI NOT Classical)")
     print(f"   {Fore.GREEN}- (...) {Style.RESET_ALL}: group terms to control precedence (e.g., AI AND (Physics OR Chemistry))")
-    print(f"\n{Fore.MAGENTA}Press Enter to continue...{Style.RESET_ALL}")
+    # --- NOVA EXPLICAÇÃO DO ASTERISCO ---
+    print(f"   {Fore.GREEN}- *...* {Style.RESET_ALL}: treats multi-word phrases as a single, exact term.")
+    print(f"           (e.g., {Style.DIM}*Machine Learning* is treated as the phrase \"Machine Learning\",")
+    print(f"            while {Style.DIM}Machine Learning is treated as Machine AND Learning){Style.RESET_ALL}")
+
+    # --- NOVO EXEMPLO COMPLETO ---
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. Complete Example:{Style.RESET_ALL}")
+    print("   Imagine you want papers about the use of 'Artificial Intelligence' or 'Machine Learning'")
+    print("   in 'Drug Discovery', but you want to exclude review articles.")
+    print(f"\n   {Fore.YELLOW}Query:{Style.RESET_ALL} (*Artificial Intelligence* OR *Machine Learning*) AND *Drug Discovery* NOT Review")
+    print(f"\n   {Fore.WHITE}Breakdown:{Style.RESET_ALL}")
+    print(f"   - {Style.BRIGHT}(*Artificial Intelligence* OR *Machine Learning*){Style.RESET_ALL}: Finds papers that contain the exact phrase")
+    print("     'Artificial Intelligence' OR the exact phrase 'Machine Learning'.")
+    print(f"   - {Style.BRIGHT}AND *Drug Discovery*{Style.RESET_ALL}: The results MUST ALSO contain the exact phrase 'Drug Discovery'.")
+    print(f"   - {Style.BRIGHT}NOT Review{Style.RESET_ALL}: From that list, any paper with the word 'Review' is excluded.")
+
+    print(f"\n{Fore.MAGENTA}Press Enter to return to the help menu...{Style.RESET_ALL}")
     input()
+
+
+def show_author_search_help():
+    """Displays a guide for the Author Search feature on Google Scholar."""
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Author Search: Google Scholar Guide ==={Style.RESET_ALL}")
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Purpose:{Style.RESET_ALL}")
+    print("   This feature downloads the complete list of publications from a specific author's")
+    print("   profile on Google Scholar.")
+
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Why Use an Author ID? (IMPORTANT){Style.RESET_ALL}")
+    print(f"   Searching by name can be unreliable due to Google's anti-scraping measures, often")
+    print(f"   resulting in temporary IP blocks or no results found. Searching directly by the")
+    print(f"   author's unique Google Scholar ID is a much more {Fore.GREEN}stable and reliable{Style.RESET_ALL} method.")
+
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. How to Find an Author's Google Scholar ID:{Style.RESET_ALL}")
+    print("   1. Open a web browser and go to: {Style.BRIGHT}https://scholar.google.com{Style.RESET_ALL}")
+    print("   2. Search for the author's name (e.g., 'Yoshua Bengio').")
+    print("   3. Click on the author's profile link in the search results.")
+    print("   4. Look at the URL in your browser's address bar.")
+    print("   5. The ID is the string of letters and numbers after {Style.BRIGHT}user={Style.RESET_ALL} and before {Style.BRIGHT}&{Style.RESET_ALL}.")
+    print(f"\n   {Fore.YELLOW}Example URL:{Style.RESET_ALL} https://scholar.google.com/citations?user={Fore.GREEN}{Style.BRIGHT}qc6CJjYAAAAJ{Style.RESET_ALL}&hl=en")
+    print(f"   In this example, the ID is: {Fore.GREEN}{Style.BRIGHT}qc6CJjYAAAAJ{Style.RESET_ALL}")
+    print("\n   Simply copy this ID and paste it into the script when prompted.")
+    
+    print(f"\n{Fore.MAGENTA}Press Enter to return to the help menu...{Style.RESET_ALL}")
+    input()
+
 
 def show_llama_filter_help():
     """Displays a guide on how the Llama filter works."""
@@ -53,17 +97,19 @@ def show_help_menu():
     while True:
         print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Main Help Menu ===")
         print(f"{Fore.WHITE}Select a topic for more information:{Style.RESET_ALL}")
-        print(f"{Fore.GREEN}(1) AutoSearch Guide (Querying & Features)")
-        print(f"{Fore.GREEN}(2) AI Filter Guide (How to Use It)")
-        print(f"{Fore.GREEN}(3) AI Risks & Limitations (Important!)")
-        print(f"{Fore.YELLOW}(4) Exit Help Menu")
+        print(f"{Fore.GREEN}(1) AutoSearch Guide (Semantic Scholar)")
+        print(f"{Fore.GREEN}(2) Author Search Guide (Google Scholar)")
+        print(f"{Fore.GREEN}(3) AI Filter Guide (How to Use It)")
+        print(f"{Fore.GREEN}(4) AI Risks & Limitations (Important!)")
+        print(f"{Fore.YELLOW}(5) Exit Help Menu")
         
         choice = input(f"{Fore.WHITE}> {Style.RESET_ALL}")
         if choice == '1': show_autosearch_help()
-        elif choice == '2': show_llama_filter_help()
-        elif choice == '3': show_llama_risks()
-        elif choice == '4':
+        elif choice == '2': show_author_search_help()
+        elif choice == '3': show_llama_filter_help()
+        elif choice == '4': show_llama_risks()
+        elif choice == '5':
             print(f"{Fore.YELLOW}Exiting help menu...{Style.RESET_ALL}")
             break
         else:
-            print(f"{Fore.RED}Invalid option. Please choose a number from 1 to 4.{Style.RESET_ALL}")
+            print(f"{Fore.RED}Invalid option. Please choose a number from 1 to 5.{Style.RESET_ALL}")

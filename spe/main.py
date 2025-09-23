@@ -12,6 +12,7 @@ from . import parse_query as pq
 from . import preview_step as ps
 from . import help_menu as hm
 from . import statistics_analyzer as sa
+from . import author_search_scholar as ass
 # ...
 
 # Initializes colorama
@@ -28,20 +29,21 @@ def display_banner():
     """Displays a welcome banner with the tool's name and description."""
     
     banner_art = r"""
-                 ██████╗ ██████╗  ███████╗
-                 ██╔═══╝ ██╔══██╗ ██╔════╝
-                 ██████╗ ██████╔╝ ███████╗
-                 ╚═══██║ ██╔═══╝  ██╔════╝
-                 ██████║ ██║      ███████║
-                 ╚═════╝ ╚═╝      ╚══════╝
+                   ██████╗ ██████╗  ███████╗
+                   ██╔═══╝ ██╔══██╗ ██╔════╝
+                   ██████╗ ██████╔╝ ███████╗
+                   ╚═══██║ ██╔═══╝  ██╔════╝
+                   ██████║ ██║      ███████║
+                   ╚═════╝ ╚═╝      ╚══════╝
 """
     
     tool_name = "Synoptic Paper Engine\n"
     desc_lines = [
-       "This script is an automated tool for searching and filtering",
-       "academic papers using the Semantic Scholar API. It supports",
-        " complex queries, citation and year filters, and generates",
-                     "organized CSV outputs."
+    "A comprehensive tool for academic literature review, integrating",
+    "both Semantic Scholar for keyword searches and Google Scholar for",
+    "author-specific publication retrieval. Features advanced options",
+    "like complex boolean queries, AI-powered contextual filtering,",
+    "and built-in statistical analysis of the results."
     ]
 
     banner_lines = desc_lines[0].strip('\n').split('\n')
@@ -226,17 +228,20 @@ def main_menu():
         os.system('cls' if os.name == 'nt' else 'clear')
         display_banner()
         print(f"\n{Fore.CYAN}--- Main Menu ---")
-        print(f"{Fore.YELLOW}1. Run Bibliographic Search")
-        print(f"{Fore.YELLOW}2. Filter Papers with AI (Llama)")
-        print(f"{Fore.YELLOW}3. Analyze Results")
-        print(f"{Fore.YELLOW}4. Help / Information")
-        print(f"{Fore.YELLOW}5. Exit")
+        print(f"{Fore.YELLOW}1. Run Bibliographic Search (Semantic Scholar)")
+        print(f"{Fore.YELLOW}2. Search by Author (Google Scholar)") #<-- 2. ADICIONE E RENUMERE AS OPÇÕES
+        print(f"{Fore.YELLOW}3. Filter Papers with AI (Llama)")
+        print(f"{Fore.YELLOW}4. Analyze Results")
+        print(f"{Fore.YELLOW}5. Help / Information")
+        print(f"{Fore.YELLOW}6. Exit")
         
-        choice = input(f"\n{Fore.CYAN}Enter your choice (1-5): {Style.RESET_ALL}")
+        choice = input(f"\n{Fore.CYAN}Enter your choice (1-6): {Style.RESET_ALL}")
         
         if choice == "1":
             run_bibliographic_search()
-        elif choice == "2":
+        elif choice == "2": #<-- 3. ADICIONE ESTE BLOCO ELIF
+            ass.run_author_search()
+        elif choice == "3":
             # New logic to choose the results folder to filter
             base_folder = "results"
             all_entries = os.listdir('.')
@@ -276,7 +281,7 @@ def main_menu():
                 print(f"{Fore.RED}❌ An error occurred during AI filtering: {e}")
                 input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
-        elif choice == "3":
+        elif choice == "4":
             print(f"\n{Fore.CYAN}--- Choose analysis type ---")
             print(f"{Fore.YELLOW}1. Analyze Bibliographic Search results")
             print(f"{Fore.YELLOW}2. Analyze AI Filter results")
@@ -341,9 +346,9 @@ def main_menu():
             else:
                 print(f"{Fore.RED}❌ Invalid choice. Please enter 0, 1 or 2.")
 
-        elif choice == "4":
-            hm.show_help_menu()
         elif choice == "5":
+            hm.show_help_menu()
+        elif choice == "6":
             print(f"{Fore.BLUE}Exiting. Goodbye!{Style.RESET_ALL}")
             sys.exit()
         else:
