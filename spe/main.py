@@ -264,7 +264,7 @@ def main_menu():
         print(f"{Fore.YELLOW}2. Search by Author (Google Scholar)")
         print(f"{Fore.YELLOW}3. Filter Papers with AI (Llama)")
         print(f"{Fore.YELLOW}4. Analyze Results")
-        print(f"{Fore.MAGENTA}5. Setup Local AI (Llama)") # <--- NOVA OPÇÃO
+        print(f"{Fore.YELLOW}5. Setup Local AI (Llama)")
         print(f"{Fore.YELLOW}6. Help / Information")
         print(f"{Fore.YELLOW}7. Exit")
         
@@ -406,3 +406,4 @@ def main_menu():
 
 if __name__ == "__main__":
     main_menu()
+
