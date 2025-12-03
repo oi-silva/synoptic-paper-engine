@@ -13,6 +13,7 @@ from . import preview_step as ps
 from . import help_menu as hm
 from . import statistics_analyzer as sa
 from . import author_search_scholar as ass
+from . import pyarxiv  # <--- IMPORTED NEW MODULE
 
 # Initializes colorama
 init(autoreset=True)
@@ -28,20 +29,19 @@ def display_banner():
     """Displays a welcome banner with the tool's name and description."""
     
     banner_art = r"""
-                   ██████╗ ██████╗  ███████╗
-                   ██╔═══╝ ██╔══██╗ ██╔════╝
-                   ██████╗ ██████╔╝ ███████╗
-                   ╚═══██║ ██╔═══╝  ██╔════╝
-                   ██████║ ██║      ███████║
-                   ╚═════╝ ╚═╝      ╚══════╝
+                    ██████╗ ██████╗  ███████╗
+                    ██╔═══╝ ██╔══██╗ ██╔════╝
+                    ██████╗ ██████╔╝ ███████╗
+                    ╚═══██║ ██╔═══╝  ██╔════╝
+                    ██████║ ██║      ███████║
+                    ╚═════╝ ╚═╝      ╚══════╝
 """
     
     tool_name = "Synoptic Paper Engine\n"
     desc_lines = [
     "A comprehensive tool for academic literature review, integrating",
-    "both Semantic Scholar for keyword searches and Google Scholar for",
-    "author-specific publication retrieval. Features advanced options",
-    "like complex boolean queries, AI-powered contextual filtering,",
+    "arXiv, Semantic Scholar and Google Scholar. Features advanced",
+    "boolean queries, full-text downloads, AI filtering,",
     "and built-in statistical analysis of the results."
     ]
 
@@ -108,8 +108,78 @@ def get_with_backoff(url, headers, max_retries=5):
     print(f"{Fore.RED}❌ Request failed after {max_retries} attempts.")
     return None
 
+# ======================= ARXIV INTEGRATION =======================
+def run_arxiv_interface():
+    """Handles the user input for Arxiv search and calls the module."""
+    print(f"\n{Fore.CYAN}--- arXiv Search Configuration ---{Style.RESET_ALL}")
+    
+    # 1. Query
+    while True:
+        query_str = input(f"{Fore.YELLOW}Enter your query {Style.DIM}('help' for guidance):{Style.RESET_ALL}\n> ")
+        if query_str.strip().lower() in ["help", "?"]:
+            hm.show_autosearch_help()
+            continue
+        if not query_str.strip():
+            print(f"{Fore.RED}❌ Query cannot be empty.")
+            return 
+        break
+
+    try:
+        queries = pq.parse_query(query_str)
+    except Exception as e:
+        print(f"{Fore.RED}❌ Error parsing the query: {e}")
+        return
+
+    # 2. Configs
+    try:
+        max_p_input = input(f"{Fore.MAGENTA}Max papers per query {Style.DIM}(default = 10):{Style.RESET_ALL} ")
+        max_papers = int(max_p_input) if max_p_input.strip() else 10
+    except ValueError:
+        max_papers = 10
+
+    try:
+        min_y_input = input(f"{Fore.MAGENTA}Minimum Year {Style.DIM}(default = None):{Style.RESET_ALL} ")
+        min_year = int(min_y_input) if min_y_input.strip() else None
+    except ValueError:
+        min_year = None
+
+    try:
+        max_y_input = input(f"{Fore.MAGENTA}Maximum Year {Style.DIM}(default = None):{Style.RESET_ALL} ")
+        max_year = int(max_y_input) if max_y_input.strip() else None
+    except ValueError:
+        max_year = None
+    
+    try:
+        min_cit_input = input(f"{Fore.MAGENTA}Minimum Citations {Style.DIM}(default = 0):{Style.RESET_ALL} ")
+        min_citations = int(min_cit_input) if min_cit_input.strip() else 0
+    except ValueError:
+        min_citations = 0
+
+    print(f"\n{Fore.LIGHTBLUE_EX}--- Search Summary ---")
+    print(f"{Fore.LIGHTBLUE_EX}🔧 Query expanded into {len(queries)} searches.")
+    print(f"{Fore.LIGHTBLUE_EX}📊 Max papers per query: {max_papers}")
+    if min_year or max_year:
+        print(f"{Fore.LIGHTBLUE_EX}📅 Year Filter: {min_year if min_year else 'Any'} - {max_year if max_year else 'Any'}")
+    
+    if not ps.ask_confirmation(queries, timeout=10):
+        print(f"{Fore.RED}❌ Operation canceled by user.")
+        return
+
+    # 3. Execution
+    output_folder = get_unique_folder("arxiv_results")
+    
+    try:
+        tool = pyarxiv.ArxivTool(max_results_per_query=max_papers)
+        tool.run_search(queries, output_folder, min_year, max_year, min_citations)
+    except Exception as e:
+        print(f"{Fore.RED}❌ An unexpected error occurred in pyarxiv: {e}")
+    
+    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+
+
+# ======================= SEMANTIC SCHOLAR INTEGRATION =======================
 def run_bibliographic_search():
-    """Main function to run the user interface and the search process."""
+    """Main function to run the user interface and the search process (Semantic Scholar)."""
     while True:
         query_str = input(f"{Fore.YELLOW}Enter your query {Style.DIM}('help' for guidance):{Style.RESET_ALL}\n> ")
         if query_str.strip().lower() in ["help", "?"]:
@@ -217,6 +287,11 @@ def run_bibliographic_search():
         with open(output_statistics, mode='a', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             writer.writerow([query, total_paper, filtered_papers])
+
+    print(f"\n{Fore.YELLOW}💡 Recommendation:{Style.RESET_ALL}")
+    print(f"   To consolidate data, remove duplicates, and view global statistics,")
+    print(f"   please run {Fore.CYAN}Option 5 (Analyze Results){Style.RESET_ALL} from the main menu.")
+    
     print(f"\n{Fore.GREEN}🏁 Finished.")
 
 def ensure_llama_installed():
@@ -260,36 +335,40 @@ def main_menu():
         os.system('cls' if os.name == 'nt' else 'clear')
         display_banner()
         print(f"\n{Fore.CYAN}--- Main Menu ---")
-        print(f"{Fore.YELLOW}1. Run Bibliographic Search (Semantic Scholar)")
-        print(f"{Fore.YELLOW}2. Search by Author (Google Scholar)")
-        print(f"{Fore.YELLOW}3. Filter Papers with AI (Llama)")
-        print(f"{Fore.YELLOW}4. Analyze Results")
-        print(f"{Fore.YELLOW}5. Setup Local AI (Llama)")
-        print(f"{Fore.YELLOW}6. Help / Information")
-        print(f"{Fore.YELLOW}7. Exit")
+        print(f"{Fore.YELLOW}1. Run arXiv Search (Full Text + PDF)")
+        print(f"{Fore.YELLOW}2. Run Semantic Scholar Search (Only metadata)")
+        print(f"{Fore.YELLOW}3. Search by Author (Google Scholar)")
+        print(f"{Fore.YELLOW}4. Filter Papers with AI (Llama)")
+        print(f"{Fore.YELLOW}5. Analyze Results")
+        print(f"{Fore.YELLOW}6. Setup Local AI (Llama)")
+        print(f"{Fore.YELLOW}7. Help / Information")
+        print(f"{Fore.YELLOW}8. Exit")
         
-        choice = input(f"\n{Fore.CYAN}Enter your choice (1-7): {Style.RESET_ALL}")
+        choice = input(f"\n{Fore.CYAN}Enter your choice (1-8): {Style.RESET_ALL}")
         
         if choice == "1":
+            run_arxiv_interface()
+            
+        elif choice == "2":
             run_bibliographic_search()
 
-        elif choice == "2":
+        elif choice == "3":
             ass.run_author_search()
 
-        elif choice == "3":
+        elif choice == "4":
             # Primeiro verifica se está instalado antes de prosseguir
             if ensure_llama_installed():
                 # Lógica para escolher pasta (apenas se tiver o Llama)
-                base_folder = "results"
+                base_folder = "results" # Assuming default Semantic Scholar or Arxiv? Adjust if needed
                 all_entries = os.listdir('.')
-                potential_folders = [d for d in all_entries if os.path.isdir(d) and d.startswith(base_folder)]
+                potential_folders = [d for d in all_entries if os.path.isdir(d) and (d.startswith("results") or d.startswith("arxiv_results"))]
                 
                 if not potential_folders:
-                    print(f"{Fore.RED}❌ No 'results' folders found. Please run a search first.")
+                    print(f"{Fore.RED}❌ No result folders found. Please run a search first.")
                     input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
                     continue
 
-                print(f"\n{Fore.CYAN}Please choose a 'results' folder to filter:{Style.RESET_ALL}")
+                print(f"\n{Fore.CYAN}Please choose a folder to filter:{Style.RESET_ALL}")
                 for i, folder_name in enumerate(potential_folders):
                     print(f"{Fore.YELLOW}{i+1}. {folder_name}")
                 
@@ -320,18 +399,18 @@ def main_menu():
             else:
                 input(f"\n{Fore.YELLOW}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
-        elif choice == "4":
+        elif choice == "5":
             print(f"\n{Fore.CYAN}--- Choose analysis type ---")
-            print(f"{Fore.YELLOW}1. Analyze Bibliographic Search results")
+            print(f"{Fore.YELLOW}1. Analyze Search results (CSV)")
             print(f"{Fore.YELLOW}2. Analyze AI Filter results")
             print(f"{Fore.YELLOW}0. Return to Main Menu")
             analysis_choice = input(f"\n{Fore.CYAN}Enter your choice (0-2): {Style.RESET_ALL}")
 
             if analysis_choice == "1":
                 base_folder = "results"
-                
+                # Updated to include arxiv results in analysis check
                 all_entries = os.listdir('.')
-                potential_folders = [d for d in all_entries if os.path.isdir(d) and d.startswith(base_folder)]
+                potential_folders = [d for d in all_entries if os.path.isdir(d) and (d.startswith("results") or d.startswith("arxiv_results"))]
                 
                 if not potential_folders:
                     print(f"{Fore.RED}❌ No 'results' folders found.")
@@ -385,8 +464,7 @@ def main_menu():
             else:
                 print(f"{Fore.RED}❌ Invalid choice. Please enter 0, 1 or 2.")
         
-        # --- NOVA LÓGICA DA OPÇÃO 5 ---
-        elif choice == "5":
+        elif choice == "6":
             print(f"\n{Fore.CYAN}--- Local AI Setup ---")
             # Verifica se já existe
             if importlib.util.find_spec("llama_cpp"):
@@ -396,14 +474,13 @@ def main_menu():
                 # Se não existe, chama a função que pergunta e instala
                 ensure_llama_installed()
 
-        elif choice == "6":
-            hm.show_help_menu()
         elif choice == "7":
+            hm.show_help_menu()
+        elif choice == "8":
             print(f"{Fore.BLUE}Exiting. Goodbye!{Style.RESET_ALL}")
             sys.exit()
         else:
-            print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 1 to 7.")
+            print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 1 to 8.")
 
 if __name__ == "__main__":
     main_menu()
-
