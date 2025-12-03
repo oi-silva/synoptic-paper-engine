@@ -7,30 +7,43 @@ init(autoreset=True)
 def show_autosearch_help():
     """Displays a guide for the AutoSearch query features."""
     print(f"\n{Fore.CYAN}{Style.BRIGHT}=== AutoSearch: Query & Features Guide ==={Style.RESET_ALL}")
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Purpose:{Style.RESET_ALL}")
-    print("   AutoSearch performs large-scale academic searches using the Semantic Scholar API.")
-    print("   It automates fetching papers based on complex queries and pre-filtering by year and citations.")
     
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Query Construction Rules:{Style.RESET_ALL}")
-    print(f"   {Fore.GREEN}- AND{Style.RESET_ALL} : requires both terms (e.g., AI AND Physics)")
-    print(f"   {Fore.GREEN}- OR{Style.RESET_ALL}  : allows either term (e.g., Graphene OR Nanotubes)")
-    print(f"   {Fore.GREEN}- NOT{Style.RESET_ALL} : excludes terms (e.g., AI NOT Classical)")
-    print(f"   {Fore.GREEN}- (...) {Style.RESET_ALL}: group terms to control precedence (e.g., AI AND (Physics OR Chemistry))")
-    # --- NOVA EXPLICAÇÃO DO ASTERISCO ---
-    print(f"   {Fore.GREEN}- *...* {Style.RESET_ALL}: treats multi-word phrases as a single, exact term.")
-    print(f"           (e.g., {Style.DIM}*Machine Learning* is treated as the phrase \"Machine Learning\",")
-    print(f"            while {Style.DIM}Machine Learning is treated as Machine AND Learning){Style.RESET_ALL}")
+    # --- 1. VISÃO GERAL ---
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Purpose:{Style.RESET_ALL}")
+    print("   AutoSearch performs systematic searches using {Fore.YELLOW}Semantic Scholar{Style.RESET_ALL} and {Fore.YELLOW}ArXiv{Style.RESET_ALL}." .format(Fore=Fore, Style=Style))
+    print("   It handles boolean logic and automatic query expansion.")
 
-    # --- NOVO EXEMPLO COMPLETO ---
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. Complete Example:{Style.RESET_ALL}")
-    print("   Imagine you want papers about the use of 'Artificial Intelligence' or 'Machine Learning'")
-    print("   in 'Drug Discovery', but you want to exclude review articles.")
-    print(f"\n   {Fore.YELLOW}Query:{Style.RESET_ALL} (*Artificial Intelligence* OR *Machine Learning*) AND *Drug Discovery* NOT Review")
-    print(f"\n   {Fore.WHITE}Breakdown:{Style.RESET_ALL}")
-    print(f"   - {Style.BRIGHT}(*Artificial Intelligence* OR *Machine Learning*){Style.RESET_ALL}: Finds papers that contain the exact phrase")
-    print("     'Artificial Intelligence' OR the exact phrase 'Machine Learning'.")
-    print(f"   - {Style.BRIGHT}AND *Drug Discovery*{Style.RESET_ALL}: The results MUST ALSO contain the exact phrase 'Drug Discovery'.")
-    print(f"   - {Style.BRIGHT}NOT Review{Style.RESET_ALL}: From that list, any paper with the word 'Review' is excluded.")
+    # --- 2. SINTAXE BÁSICA (CORRIGIDA) ---
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Basic Syntax Rules:{Style.RESET_ALL}")
+    print(f"   {Fore.GREEN}AND{Style.RESET_ALL}   : Both terms required (e.g., AI AND Physics)")
+    print(f"   {Fore.GREEN}OR{Style.RESET_ALL}    : Either term allowed (used within parentheses)")
+    print(f"   {Fore.GREEN}NOT{Style.RESET_ALL}   : Exclude term (e.g., NOT Review)")
+    
+    # --- DESTAQUE PARA O ASTERISCO E O ERRO ---
+    print(f"   {Fore.GREEN}*...*{Style.RESET_ALL} : {Fore.RED}{Style.BRIGHT}REQUIRED for Multi-Word Phrases{Style.RESET_ALL}")
+    print(f"            - {Fore.GREEN}Correct:{Style.RESET_ALL}   *Machine Learning*")
+    print(f"            - {Fore.RED}Incorrect:{Style.RESET_ALL} Machine Learning  {Fore.RED}(Will cause an error!){Style.RESET_ALL}")
+    print("              (The parser requires asterisks to group words together)")
+
+    # --- 3. A LÓGICA DE EXPANSÃO ---
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. The 'Expansion' Engine:{Style.RESET_ALL}")
+    print("   The tool automatically expands groups in parentheses into separate queries.")
+    
+    print(f"\n   {Fore.CYAN}Input Logic:{Style.RESET_ALL}   (*Solar* OR *Wind*) AND *Energy*")
+    print(f"         {Fore.CYAN}│{Style.RESET_ALL}")
+    print(f"         {Fore.CYAN}▼{Style.RESET_ALL}  {Style.DIM}(Expands to){Style.RESET_ALL}")
+    print(f"   {Fore.GREEN}Query 1:{Style.RESET_ALL}      *Solar* AND *Energy*")
+    print(f"   {Fore.GREEN}Query 2:{Style.RESET_ALL}      *Wind* AND *Energy*")
+    
+    print(f"\n   {Fore.YELLOW}⚠️  Warning:{Style.RESET_ALL} Avoid excessive OR groups to prevent rate-limiting.")
+
+    # --- 4. EXEMPLO PRÁTICO ---
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}4. Practical Example:{Style.RESET_ALL}")
+    print("   Goal: Find papers on 'Deep Learning' OR 'Neural Networks' applied to")
+    print("   'Drug Discovery', excluding 'Reviews'.")
+    
+    print(f"\n   {Fore.YELLOW}Query String:{Style.RESET_ALL}")
+    print("   (*Deep Learning* OR *Neural Networks*) AND *Drug Discovery* NOT Review")
 
     print(f"\n{Fore.MAGENTA}Press Enter to return to the help menu...{Style.RESET_ALL}")
     input()
@@ -97,7 +110,7 @@ def show_help_menu():
     while True:
         print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Main Help Menu ===")
         print(f"{Fore.WHITE}Select a topic for more information:{Style.RESET_ALL}")
-        print(f"{Fore.GREEN}(1) AutoSearch Guide (Semantic Scholar)")
+        print(f"{Fore.GREEN}(1) AutoSearch Guide (arXiv & Semantic Scholar)")
         print(f"{Fore.GREEN}(2) Author Search Guide (Google Scholar)")
         print(f"{Fore.GREEN}(3) AI Filter Guide (How to Use It)")
         print(f"{Fore.GREEN}(4) AI Risks & Limitations (Important!)")

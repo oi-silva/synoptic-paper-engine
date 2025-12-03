@@ -29,6 +29,9 @@ dependencies = [
     "PyYAML",
     "Jinja2",
     "huggingface-hub",
+    "scholarly",
+    "arxiv",
+    huggingface_hub,
 ]
 [project.optional-dependencies]
 llama = ["llama-cpp-python"]
