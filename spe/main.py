@@ -1,19 +1,18 @@
-# spe/main.py
-
 import requests
 import time
 import csv
 import sys
 import os
 from colorama import init, Fore, Style
+import subprocess
+import importlib.util
 
-# Imports relative to the current package (notice the '.')
+# Imports relative to the current package
 from . import parse_query as pq
 from . import preview_step as ps
 from . import help_menu as hm
 from . import statistics_analyzer as sa
 from . import author_search_scholar as ass
-# ...
 
 # Initializes colorama
 init(autoreset=True)
@@ -49,15 +48,15 @@ def display_banner():
     banner_lines = desc_lines[0].strip('\n').split('\n')
     max_banner_width = max(len(line) for line in banner_lines) if banner_lines else 80
 
-    # Imprime a arte e o título em CIANO
+    # Prints art and title in CYAN
     print(f"{Fore.CYAN}{Style.BRIGHT}{banner_art}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{Style.BRIGHT}{tool_name.center(max_banner_width)}{Style.RESET_ALL}")
     
-    # Imprime a descrição em BRANCO
+    # Prints description in WHITE
     for line in desc_lines:
         print(f"{Fore.WHITE}{line.center(max_banner_width)}{Style.RESET_ALL}")
     
-    # Separador final em CIANO
+    # Final separator in CYAN
     print(f"\n{Fore.CYAN}{Style.BRIGHT}{'=' * max_banner_width}{Style.RESET_ALL}\n")
 
 def get_unique_folder(base_folder):
@@ -118,7 +117,7 @@ def run_bibliographic_search():
             continue
         if not query_str.strip():
             print(f"{Fore.RED}❌ Query cannot be empty. Returning to main menu.")
-            return # <-- CHANGED THIS LINE
+            return 
         break
 
     try:
@@ -220,6 +219,39 @@ def run_bibliographic_search():
             writer.writerow([query, total_paper, filtered_papers])
     print(f"\n{Fore.GREEN}🏁 Finished.")
 
+def ensure_llama_installed():
+    """
+    Checks if llama-cpp-python is installed.
+    If not, asks the user if they want to install it.
+    """
+    # Check if the package already exists
+    llama_spec = importlib.util.find_spec("llama_cpp")
+    
+    if llama_spec is not None:
+        return True # Already installed
+
+    print("\n⚠️  Local AI feature (Llama) is not installed.")
+    print("This is required to run models on your local machine.")
+    
+    while True:
+        choice = input(">> Do you want to download and install Llama support now? (y/n): ").lower().strip()
+        
+        if choice == 'n':
+            print("Okay, running in lightweight mode (without local AI).")
+            return False
+            
+        if choice == 'y':
+            print("📦 Installing llama-cpp-python... (This may take a while)")
+            try:
+                # Calls pip via subprocess using the current python executable
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "llama-cpp-python"])
+                print("✅ Installation completed successfully!")
+                print(f"{Fore.GREEN}🔄 Please restart the 'spe' command to load the new library.{Style.RESET_ALL}")
+                sys.exit(0) # Exit to allow user to restart and load imports correctly
+            except subprocess.CalledProcessError:
+                print("❌ Installation failed. Check your internet connection or C++ compilers.")
+                return False
+
 def main_menu():
     """Displays the main menu and handles user choices."""
     display_banner()
@@ -229,57 +261,64 @@ def main_menu():
         display_banner()
         print(f"\n{Fore.CYAN}--- Main Menu ---")
         print(f"{Fore.YELLOW}1. Run Bibliographic Search (Semantic Scholar)")
-        print(f"{Fore.YELLOW}2. Search by Author (Google Scholar)") #<-- 2. ADICIONE E RENUMERE AS OPÇÕES
+        print(f"{Fore.YELLOW}2. Search by Author (Google Scholar)")
         print(f"{Fore.YELLOW}3. Filter Papers with AI (Llama)")
         print(f"{Fore.YELLOW}4. Analyze Results")
-        print(f"{Fore.YELLOW}5. Help / Information")
-        print(f"{Fore.YELLOW}6. Exit")
+        print(f"{Fore.MAGENTA}5. Setup Local AI (Llama)") # <--- NOVA OPÇÃO
+        print(f"{Fore.YELLOW}6. Help / Information")
+        print(f"{Fore.YELLOW}7. Exit")
         
-        choice = input(f"\n{Fore.CYAN}Enter your choice (1-6): {Style.RESET_ALL}")
+        choice = input(f"\n{Fore.CYAN}Enter your choice (1-7): {Style.RESET_ALL}")
         
         if choice == "1":
             run_bibliographic_search()
-        elif choice == "2": #<-- 3. ADICIONE ESTE BLOCO ELIF
-            ass.run_author_search()
-        elif choice == "3":
-            # New logic to choose the results folder to filter
-            base_folder = "results"
-            all_entries = os.listdir('.')
-            potential_folders = [d for d in all_entries if os.path.isdir(d) and d.startswith(base_folder)]
-            
-            if not potential_folders:
-                print(f"{Fore.RED}❌ No 'results' folders found. Please run a search first.")
-                input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
-                continue
 
-            print(f"\n{Fore.CYAN}Please choose a 'results' folder to filter:{Style.RESET_ALL}")
-            for i, folder_name in enumerate(potential_folders):
-                print(f"{Fore.YELLOW}{i+1}. {folder_name}")
-            
-            while True:
+        elif choice == "2":
+            ass.run_author_search()
+
+        elif choice == "3":
+            # Primeiro verifica se está instalado antes de prosseguir
+            if ensure_llama_installed():
+                # Lógica para escolher pasta (apenas se tiver o Llama)
+                base_folder = "results"
+                all_entries = os.listdir('.')
+                potential_folders = [d for d in all_entries if os.path.isdir(d) and d.startswith(base_folder)]
+                
+                if not potential_folders:
+                    print(f"{Fore.RED}❌ No 'results' folders found. Please run a search first.")
+                    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                    continue
+
+                print(f"\n{Fore.CYAN}Please choose a 'results' folder to filter:{Style.RESET_ALL}")
+                for i, folder_name in enumerate(potential_folders):
+                    print(f"{Fore.YELLOW}{i+1}. {folder_name}")
+                
+                while True:
+                    try:
+                        choice_num = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}"))
+                        if 1 <= choice_num <= len(potential_folders):
+                            input_folder = potential_folders[choice_num - 1]
+                            break
+                        else:
+                            print(f"{Fore.RED}Invalid number. Please try again.")
+                    except ValueError:
+                        print(f"{Fore.RED}Invalid input. Please enter a number.")
+                
+                output_folder = get_unique_folder("llama_filtered")
+                print(f"\n{Fore.GREEN}✅ Starting AI-based filtering...")
                 try:
-                    choice_num = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}"))
-                    if 1 <= choice_num <= len(potential_folders):
-                        input_folder = potential_folders[choice_num - 1]
-                        break
-                    else:
-                        print(f"{Fore.RED}Invalid number. Please try again.")
-                except ValueError:
-                    print(f"{Fore.RED}Invalid input. Please enter a number.")
-            
-            output_folder = get_unique_folder("llama_filtered")
-            print(f"\n{Fore.GREEN}✅ Starting AI-based filtering...")
-            try:
-                from . import llama_filter as lf
-                lf.filter_with_llama(input_folder, output_folder)
-                print(f"\n{Fore.GREEN}🏁 AI filtering finished. Check the '{output_folder}' folder for results.")
-                input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
-            except ImportError:
-                print(f"{Fore.RED}❌ Error: 'llama_filter.py' not found. Make sure the file is in the same directory.")
-                input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
-            except Exception as e:
-                print(f"{Fore.RED}❌ An error occurred during AI filtering: {e}")
-                input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                    from . import llama_filter as lf
+                    lf.filter_with_llama(input_folder, output_folder)
+                    print(f"\n{Fore.GREEN}🏁 AI filtering finished. Check the '{output_folder}' folder for results.")
+                    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                except ImportError:
+                    print(f"{Fore.RED}❌ Error: 'llama_filter.py' not found or failed to import.")
+                    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                except Exception as e:
+                    print(f"{Fore.RED}❌ An error occurred during AI filtering: {e}")
+                    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+            else:
+                input(f"\n{Fore.YELLOW}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
         elif choice == "4":
             print(f"\n{Fore.CYAN}--- Choose analysis type ---")
@@ -345,14 +384,25 @@ def main_menu():
 
             else:
                 print(f"{Fore.RED}❌ Invalid choice. Please enter 0, 1 or 2.")
-
+        
+        # --- NOVA LÓGICA DA OPÇÃO 5 ---
         elif choice == "5":
-            hm.show_help_menu()
+            print(f"\n{Fore.CYAN}--- Local AI Setup ---")
+            # Verifica se já existe
+            if importlib.util.find_spec("llama_cpp"):
+                print(f"{Fore.GREEN}✅ 'llama-cpp-python' is already installed and ready to use.")
+                input(f"\n{Fore.GREEN}Press Enter to return to main menu...{Style.RESET_ALL}")
+            else:
+                # Se não existe, chama a função que pergunta e instala
+                ensure_llama_installed()
+
         elif choice == "6":
+            hm.show_help_menu()
+        elif choice == "7":
             print(f"{Fore.BLUE}Exiting. Goodbye!{Style.RESET_ALL}")
             sys.exit()
         else:
-            print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 1 to 5.")
+            print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 1 to 7.")
 
 if __name__ == "__main__":
     main_menu()
