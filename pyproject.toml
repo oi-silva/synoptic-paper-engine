@@ -19,7 +19,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# AQUI VÃO AS DEPENDÊNCIAS DO SEU requirements.txt
+# DEPENDÊNCIAS
 dependencies = [
     "requests",
     "colorama",
@@ -29,9 +29,10 @@ dependencies = [
     "PyYAML",
     "Jinja2",
     "huggingface-hub",
-    # Adicione qualquer outra dependência direta aqui
 ]
+[project.optional-dependencies]
+llama = ["llama-cpp-python"]
 
 [project.scripts]
-# AQUI ESTÁ A MÁGICA: cria um comando de terminal
+
 spe = "spe.main:main_menu"
