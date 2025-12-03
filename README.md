@@ -87,6 +87,7 @@ pip install git+https://github.com/oi-silva/synoptic-paper-engine.git
 To update your installation to the latest version from the repository, you need to re-run the installation command with the `--upgrade` and `--no-cache-dir` flags.
 
 ```bash
+pip uninstall synoptic-paper-engine
 pip install --upgrade --no-cache-dir git+https://github.com/oi-silva/synoptic-paper-engine.git
 ```
 
