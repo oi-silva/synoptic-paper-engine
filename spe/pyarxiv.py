@@ -120,4 +120,4 @@ class ArxivTool:
 
         print(f"\n{Fore.YELLOW}💡 Recommendation:{Style.RESET_ALL}")
         print(f"   To consolidate data, remove duplicates, and view global statistics,")
-        print(f"   please run {Fore.CYAN}Option 5 (Analyze Results){Style.RESET_ALL} from the main menu.")
+        print(f"   please run {Fore.CYAN}Option 6 (Analyze Results){Style.RESET_ALL} from the main menu.")
