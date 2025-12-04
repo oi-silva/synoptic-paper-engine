@@ -24,7 +24,6 @@ dependencies = [
     "requests",
     "colorama",
     "tqdm",
-    "llama-cpp-python",
     "numpy",
     "PyYAML",
     "Jinja2",
@@ -40,3 +39,4 @@ llama = ["llama-cpp-python"]
 [project.scripts]
 
 spe = "spe.main:main_menu"
+
