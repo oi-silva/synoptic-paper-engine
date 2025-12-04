@@ -3,57 +3,48 @@ from itertools import product
 from colorama import init, Fore, Style
 import sys
 
-# Initializes colorama. 'autoreset' ensures the color resets to default after each print.
 init(autoreset=True)
 
 def parse_query(query: str):
     """
-    Analisa uma string de consulta booleana e a expande em uma lista de combinações.
+    Parses a boolean query string and expands it into a list of combinations.
     
-    A nova abordagem usa um método de pilha para avaliar a expressão
-    com a precedência correta dos operadores: () > NOT > AND > OR.
+    Implements a stack-based evaluation to handle operator precedence 
+    correctly: () > NOT > AND > OR.
     """
     def clean_token(token: str) -> str:
-        """Preserva maiúsculas/minúsculas se o token estiver em *...*, senão normaliza para minúsculas."""
+        # Preserve case if wrapped in *...*, otherwise normalize to lowercase.
         token = token.strip()
         if token.startswith("*") and token.endswith("*") and len(token) > 1:
             return token[1:-1]
         return token.lower()
 
     def process_operator(operator_stack, value_stack):
-        """Processa um operador da pilha de operadores."""
+        """Pops an operator and applies it to the operands in the value stack."""
         op = operator_stack.pop()
         
         if op == "NOT":
             if not value_stack:
-                raise ValueError("Expressão inválida: NOT sem termo após.")
+                raise ValueError("Invalid expression: NOT without a following term.")
             right_term = ensure_list(value_stack.pop())
-            # A lógica para NOT precisa de uma expressão anterior.
-            # Como a sua consulta original não usa NOT, vamos pular isso por enquanto
-            # para não introduzir mais complexidade.
-            # Mas a implementação correta seria: ["NOT", right_term]
             
-            # Para sua consulta, vamos assumir que NOT é binário, como A NOT B
-            # Isso é uma simplificação, mas funciona para seu exemplo.
-            # O comportamento de NOT B sem A é ambíguo.
-            
-            # No seu caso, o NOT é binário, como em 'AI AND Physics AND NOT Classical'.
-            # A lógica é: `(AI AND Physics) NOT Classical`.
-            
-            # Por isso, vamos tratar `NOT` no loop principal em vez da pilha de operadores,
-            # para simplificar.
+            # TODO: Implement full unary NOT logic.
+            # Currently skipped to avoid complexity. The current implementation 
+            # treats NOT as binary (A NOT B) or effectively ignores it here 
+            # because the logic is ambiguous without a preceding term.
+            # Real implementation should return: ["NOT", right_term]
             pass 
         
         elif op == "OR":
             if len(value_stack) < 2:
-                raise ValueError("Expressão inválida: OR precisa de dois termos.")
+                raise ValueError("Invalid expression: OR requires two terms.")
             right_term = ensure_list(value_stack.pop())
             left_term = ensure_list(value_stack.pop())
             value_stack.append(left_term + right_term)
             
         elif op == "AND":
             if len(value_stack) < 2:
-                raise ValueError("Expressão inválida: AND precisa de dois termos.")
+                raise ValueError("Invalid expression: AND requires two terms.")
             right_term = ensure_list(value_stack.pop())
             left_term = ensure_list(value_stack.pop())
             
@@ -66,7 +57,7 @@ def parse_query(query: str):
             value_stack.append(combined)
 
     def ensure_list(x):
-        """Garante que a saída seja uma lista plana de strings."""
+        """Flattens input into a list of strings."""
         if isinstance(x, list):
             out = []
             for item in x:
@@ -77,39 +68,39 @@ def parse_query(query: str):
             return out
         return [x]
 
-    # Expressão regular mais precisa para lidar com termos e operadores
+    # Tokenize: capture terms, operators, and parentheses.
     tokens = re.findall(r'\*[^*]+\*|\(|\)|\bAND\b|\bOR\b|\bNOT\b|\w+', query, flags=re.IGNORECASE)
 
-    # Pilhas para a lógica
     value_stack = []
     operator_stack = []
     
-    # Precedência dos operadores
+    # Precedence map
     precedence = {"OR": 1, "AND": 2, "NOT": 3}
 
     i = 0
     while i < len(tokens):
         token = tokens[i]
         
-        # 1. Termos
+        # 1. Operands (terms)
         if token.upper() not in ["AND", "OR", "NOT", "(", ")"]:
             value_stack.append([clean_token(token)])
             
-        # 2. Parênteses de abertura
+        # 2. Start group
         elif token == "(":
             operator_stack.append(token)
             
-        # 3. Parênteses de fechamento
+        # 3. End group
         elif token == ")":
             while operator_stack and operator_stack[-1] != "(":
                 process_operator(operator_stack, value_stack)
             if not operator_stack or operator_stack[-1] != "(":
-                raise ValueError("Parênteses desbalanceados na consulta.")
-            operator_stack.pop() # Remove o "(" da pilha
+                raise ValueError("Unbalanced parentheses in query.")
+            operator_stack.pop() # Pop the opening "("
             
-        # 4. Operadores
+        # 4. Operators
         elif token.upper() in precedence:
             current_op = token.upper()
+            # Flush higher or equal precedence operators from stack before pushing current
             while (operator_stack and operator_stack[-1] != "(" and
                    precedence.get(operator_stack[-1], 0) >= precedence.get(current_op, 0)):
                 process_operator(operator_stack, value_stack)
@@ -117,13 +108,13 @@ def parse_query(query: str):
             
         i += 1
 
-    # Processa os operadores restantes na pilha
+    # Flush remaining operators
     while operator_stack:
         if operator_stack[-1] == "(":
-            raise ValueError("Parênteses desbalanceados na consulta.")
+            raise ValueError("Unbalanced parentheses in query.")
         process_operator(operator_stack, value_stack)
 
     if len(value_stack) != 1:
-        raise ValueError("Expressão inválida.")
+        raise ValueError("Invalid expression: stack did not reduce to a single result.")
     
     return ensure_list(value_stack[0])

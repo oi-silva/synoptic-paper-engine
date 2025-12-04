@@ -1,149 +1,129 @@
-# Synoptic Paper Engine ✨
+# Synoptic Paper Engine (SPE)
 
-**Synoptic Paper Engine (SPE)** is a powerful command-line interface (CLI) tool designed to streamline and automate the process of academic literature review. It leverages the Semantic Scholar API to perform large-scale bibliographic searches and uses a local AI model (Llama 3) to perform contextual analysis and filtering of the results.
+**Synoptic Paper Engine** is a command-line interface (CLI) tool designed to automate systematic literature reviews. It integrates multi-source bibliographic retrieval, intelligent query parsing, and advanced filtering pipelines using local Large Language Models (LLMs) and full-text proximity analysis.
 
-This tool is perfect for researchers, students, and anyone who needs to quickly gather, filter, and analyze a large volume of academic papers on a specific topic.
+The system is engineered to streamline the workflow of gathering, filtering, and analyzing large volumes of academic literature.
 
----
 
-## 🚀 Key Features
+![Screenshot of the Synoptic Paper Engine main menu interface showing colored options in a terminal window.](image.png)
 
-* **Advanced Bibliographic Search**:
-    * Connects to the **Semantic Scholar API** for comprehensive searches.
-    * Supports complex **Boolean queries** with `AND`, `OR`, `NOT`, and nested parentheses `(...)` for precise searching.
-    * Pre-filters results based on **minimum citation count** and **year range**.
+-----
 
-* **🤖 AI-Powered Filtering**:
-    * Integrates a **local Llama 3 model** to "read" the title and abstract of each paper.
-    * Allows users to define a custom **expert persona, research topic, and evaluation criteria** for the AI.
-    * Intelligently filters papers based on their contextual relevance, not just keywords.
+## 🚀 Core Features
 
-* **📊 In-depth Analysis**:
-    * Analyzes both the initial search results and the AI-filtered results.
-    * Generates statistics on the **most productive years**, **most prolific authors**, and **most cited papers**.
-    * Exports all analysis data to CSV files in a `log/` directory for further use.
+### 1\. Multi-Source Retrieval
 
-* **⚙️ User-Friendly Interface**:
-    * A simple and intuitive menu-driven CLI.
-    * Interactive prompts guide the user through every step.
-    * Built-in help menus explain all features and associated risks.
-    * Safe-guards like a confirmation preview before executing large searches.
+The engine connects to three distinct academic repositories:
 
----
+  * **ArXiv:** Performs full-text retrieval. It automatically downloads PDF files and renames them based on the article title for local organization.
+  * **Semantic Scholar:** Utilizes the API for high-volume metadata retrieval, ideal for broad bibliometric scans.
+  * **Google Scholar (Author Search):** Retrieves comprehensive publication lists for specific researchers using their unique **Author ID**, bypassing common IP restrictions associated with name-based scraping.
+
+### 2\. Advanced Query Parsing
+
+SPE features a custom-built query engine that handles complex Boolean logic.
+
+  * **Logic Expansion:** Automatically parses nested parentheses and performs a Cartesian expansion of `OR` groups into atomic API requests (e.g., `(A OR B) AND C` becomes `A AND C` and `B AND C`).
+  * **Syntax Support:** Full support for `AND`, `OR`, `NOT` operators.
+  * **Exact Phrase Matching:** Utilizes asterisks (e.g., `*Machine Learning*`) to denote exact multi-word tokens, preventing unwanted token splitting.
+
+### 3\. Hierarchical Filtering Pipelines
+
+Unlike standard keyword searches, SPE offers two post-processing filtration layers:
+
+  * **🤖 Semantic AI Filter (Local LLM):**
+
+      * Leverages quantized local models (Llama 3 or Qwen) to analyze titles and abstracts.
+      * Classifies papers based on user-defined personas and qualitative criteria (e.g., "Must include experimental validation").
+      * Operates entirely offline, ensuring data privacy.
+
+  * **📄 Full-Text Content Filter (Ranking System):**
+
+      * Scans the full text of downloaded PDFs (via `pypdf`).
+      * Implements a **Relevance Ranking Algorithm** based on term presence and **Proximity Search**.
+      * Categorizes files into `High_Relevance` (terms appear in close proximity), `Medium_Relevance` (all terms present), and `Low_Relevance` folders.
+
+### 4\. Statistical Analysis & Deduplication
+
+  * **Consolidation:** Merges results from different search batches and sources.
+  * **Deduplication:** Identifies and removes duplicate entries using title normalization logic.
+  * **Reporting:** Generates CSV reports in the `log/` directory, detailing publication trends over time, author frequency, and citation metrics.
+
+-----
 
 ## 🔧 Installation
 
-A instalação é feita diretamente do repositório GitHub usando `pip`. Abaixo estão as instruções para Windows e Linux/macOS.
+The package can be installed directly from the repository using `pip`. A virtual environment (venv or conda) is recommended.
 
-### For Windows Users
+### Prerequisites
 
-**Step 1: Install Prerequisites (Python and Git)**
+  * Python 3.10 or higher.
+  * Git.
 
-1.  **Install Python**:
-    * Go to the official Python website: [python.org/downloads/](https://www.python.org/downloads/)
-    * Download the latest installer.
-    * Run the installer and **make sure to check the box that says "Add Python to PATH"** before you click "Install Now". This is a very important step.
-
-2.  **Install Git**:
-    * Go to the official Git website: [git-scm.com/download/win](https://git-scm.com/download/win)
-    * Download and run the installer. You can safely use the default options for all installation steps.
-
-**Step 2: Install Synoptic Paper Engine**
-
-1.  Open the **Command Prompt** or **PowerShell** (you can find it in the Start Menu).
-2.  Copy and paste the following command and press Enter:
+### Install via Command Line
 
 ```bash
 pip install git+https://github.com/oi-silva/synoptic-paper-engine.git
 ```
-
-### For Linux / macOS Users
-
-**Step 1: Install Prerequisites (Python and Git)**
-
-Python and Git are often pre-installed on Linux and macOS. You can check by opening your terminal and typing `python3 --version` and `git --version`. If they are not installed, follow these steps.
-
-1.  **Install Python & Git (for Debian/Ubuntu)**:
-    * Open your terminal and run the following command:
-
-    ```bash
-    sudo apt update && sudo apt install python3 python3-pip git -y
-    ```
-    * For other Linux distributions or macOS (using Homebrew), use the appropriate package manager commands.
-
-**Step 2: Install Synoptic Paper Engine**
-
-1.  Open your terminal.
-2.  Run the following command:
-
-```bash
-pip install git+https://github.com/oi-silva/synoptic-paper-engine.git
-```
-
----
 
 ## 🔄 Updating the Tool
 
 To update your installation to the latest version from the repository, you need to re-run the installation command with the `--upgrade` and `--no-cache-dir` flags.
 
 ```bash
+
 pip uninstall synoptic-paper-engine
+
 pip install --upgrade --no-cache-dir git+https://github.com/oi-silva/synoptic-paper-engine.git
+
 ```
 
 * `--upgrade`: Tells `pip` to update the package to the newest version.
+
 * `--no-cache-dir`: This is crucial. It forces `pip` to fetch the latest code from GitHub instead of using a cached, older version.
+-----
 
----
+## 🖥️ Usage
 
-## Usage
-
-After a successful installation, you can run the tool directly from your terminal.
-
-### On Windows
-
-1.  Open **Command Prompt** or **PowerShell**.
-2.  Type the following command to start the application:
+To launch the interactive menu, execute the module:
 
 ```bash
 python -m spe.main
 ```
 
-### On Linux / macOS
-
-1.  Open your terminal.
-2.  Thanks to the setup process, you can use a shorter, direct command:
-
+or shorter:
 ```bash
 spe
 ```
 
-This will launch the main menu, where you can choose from the following options:
+### Workflow Overview
 
-1.  **Run Bibliographic Search**: Perform a large-scale search on Semantic Scholar with custom queries and filters.
-2.  **Filter Papers with AI (Llama)**: Use a local AI model to perform contextual filtering on your search results.
-3.  **Analyze Results**: Generate statistics on the papers you've collected.
-4.  **Help / Information**: View the detailed help menu.
-5.  **Exit**: Close the application.
+1.  **Retrieval:** Select **Option 1** (ArXiv) or **Option 2** (Semantic Scholar) to gather data.
+2.  **Filtrations:**
+      * Use **Option 4** (AI Filter) for semantic screening of abstracts.
+      * Use **Option 5** (PDF Content Filter) to scan full PDF texts for specific formulas or terms.
+3.  **Analysis:** Run **Option 6** (Analyze Results) to deduplicate the dataset and generate final statistics.
 
----
+-----
 
-## ⚠️ Important Note on the AI Filter
+## 🔍 Query Syntax Guide
 
-The AI filtering feature uses `llama-cpp-python` to run a 4-bit quantized version of **Meta-Llama-3-8B-Instruct**.
+The query engine enforces strict syntax for precision.
 
-* **Automatic Download**: The first time you run the AI filter, the script will automatically download the model file (~4.7 GB). This may take a few minutes.
-* **Resource Usage**: Running the model is CPU-intensive and requires a significant amount of RAM. Performance will vary depending on your hardware.
-* **Disclaimer**: The AI is a powerful assistant for initial screening, but it is not a replacement for expert human judgment. Always critically evaluate its outputs.
+| Operator | Description | Example |
+| :--- | :--- | :--- |
+| **AND** | Intersection | `Graphene AND Properties` |
+| **OR** | Union (grouping required) | `(Solar OR Wind)` |
+| **NOT** | Exclusion | `NOT Review` |
+| **`*...*`** | **Exact Phrase** | `*Deep Learning*` |
 
----
+> **Important:** The parser treats space-separated words as implicit `AND` conditions. To search for a composite term like "Deep Learning" as a single entity, it **must** be enclosed in asterisks: `*Deep Learning*`.
 
-## Dependencies
+-----
 
-The installer will handle these automatically, but for reference, the main dependencies are:
-* `requests`
-* `colorama`
-* `tqdm`
-* `llama-cpp-python`
+## ⚠️ System Requirements & Limitations
 
----
+  * **LLM Model:** The AI filtering module requires downloading a model file (approx. 1GB - 4GB) upon first use. This runs on the CPU but benefits from available RAM.
+  * **API Rate Limits:** While the tool implements exponential backoff strategies, aggressive querying (excessive `OR` groups) may still trigger temporary API rate limits from Semantic Scholar or ArXiv.
+
+-----
