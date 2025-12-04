@@ -32,6 +32,7 @@ dependencies = [
     "scholarly",
     "arxiv",
     "huggingface_hub",
+    "pypdf",
 ]
 [project.optional-dependencies]
 llama = ["llama-cpp-python"]

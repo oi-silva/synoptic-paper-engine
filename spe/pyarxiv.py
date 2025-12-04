@@ -109,9 +109,9 @@ class ArxivTool:
         # 3. Save CSV
         df = pd.DataFrame(final_data)
         csv_path = os.path.join(output_folder, "arxiv_results.csv")
-        # Reorder columns for better reading
+
         cols = ['title', 'year', 'authors', 'query_origin', 'pdf_url', 'local_path', 'summary']
-        # Filter only existing columns
+
         cols = [c for c in cols if c in df.columns]
         df = df[cols]
         

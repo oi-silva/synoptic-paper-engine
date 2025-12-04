@@ -3,7 +3,7 @@ import csv
 import sys
 from colorama import Fore, Style, init
 
-# Tenta importar as bibliotecas necessárias
+# Attempt imports with specific error handling for llama-cpp-python
 try:
     from llama_cpp import Llama
 except ImportError:
@@ -11,23 +11,23 @@ except ImportError:
     print("Please select Option 6 in the main menu to install it.")
     sys.exit(1)
 
+# Optional dependency: huggingface_hub
 try:
     from huggingface_hub import hf_hub_download
 except ImportError:
-    # Fallback silencioso ou instalação automática se desejar, 
-    # mas aqui vamos apenas pedir para instalar se falhar
+    # Silent fallback; specific errors handled in download function
     pass
 
 init(autoreset=True)
 
-# --- CONFIGURAÇÃO DO MODELO ---
-# Usaremos um modelo leve e muito capaz (Qwen 2.5 1.5B ou TinyLlama) para rodar rápido em CPU
+# --- MODEL CONFIGURATION ---
+# Using a lightweight, CPU-capable model (Qwen 2.5 1.5B)
 REPO_ID = "Qwen/Qwen2.5-1.5B-Instruct-GGUF"
 FILENAME = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
 MODEL_DIR = "models"
 
 def download_model_if_needed():
-    """Baixa o modelo GGUF automaticamente do HuggingFace se não existir."""
+    """Auto-download GGUF model from HuggingFace if missing locally."""
     if not os.path.exists(MODEL_DIR):
         os.makedirs(MODEL_DIR)
     
@@ -56,7 +56,7 @@ def download_model_if_needed():
     return model_path
 
 def get_user_criteria():
-    """Coleta os critérios do usuário via terminal."""
+    """Collects filter criteria via CLI."""
     print(f"\n{Fore.CYAN}--- AI Filter Configuration ---{Style.RESET_ALL}")
     
     print(f"{Fore.WHITE}Define the persona for the AI (e.g., 'Senior Material Scientist'):")
@@ -71,7 +71,7 @@ def get_user_criteria():
     return persona, topic, criteria
 
 def construct_prompt(persona, topic, criteria, title, abstract):
-    """Monta o prompt para o Llama."""
+    """Builds the prompt template for Llama."""
     return f"""<|im_start|>system
 You are a {persona}. Your task is to screen academic papers for a literature review on "{topic}".
 Criteria for inclusion: {criteria}.
@@ -86,20 +86,20 @@ Is this paper relevant based on the criteria? Reply YES or NO.<|im_end|>
 
 def filter_with_llama(input_folder, output_folder):
     """
-    Função principal chamada pelo main.py.
-    Lê CSVs, roda o Llama e salva os aprovados.
+    Main entry point. 
+    Iterates through CSVs, runs inference, and saves approved entries.
     """
-    # 1. Preparar Modelo
+    # 1. Setup Model
     model_path = download_model_if_needed()
     
     print(f"\n{Fore.CYAN}🚀 Loading AI Model... (This may take a moment){Style.RESET_ALL}")
-    # n_ctx=2048 é suficiente para abstract + prompt. verbose=False limpa o terminal.
+    # n_ctx=4096 covers abstract + prompt. verbose=False suppresses low-level logs.
     llm = Llama(model_path=model_path, n_ctx=4096, verbose=False, n_gpu_layers=-1) 
     
-    # 2. Coletar Inputs
+    # 2. Input Collection
     persona, topic, criteria = get_user_criteria()
     
-    # 3. Preparar Arquivos
+    # 3. File Setup
     csv_files = [f for f in os.listdir(input_folder) if f.endswith('.csv')]
     output_csv = os.path.join(output_folder, "llama_filtered_articles.csv")
     
@@ -109,7 +109,7 @@ def filter_with_llama(input_folder, output_folder):
     print(f"\n{Fore.GREEN}⚡ Starting Inference on {len(csv_files)} files...{Style.RESET_ALL}")
     
     with open(output_csv, 'w', newline='', encoding='utf-8') as outfile:
-        # Inicializa o Writer
+        # Initialize Writer
         fieldnames = ["Title", "Year", "Citations", "Authors", "URL", "Abstract", "AI_Decision"]
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -121,16 +121,16 @@ def filter_with_llama(input_folder, output_folder):
                 reader = csv.DictReader(infile)
                 
                 for row in reader:
-                    # --- NORMALIZAÇÃO (ArXiv vs Semantic Scholar) ---
-                    # Tenta pegar Capitalizado (Semantic) ou minúsculo (Arxiv)
+                    # --- NORMALIZATION (ArXiv vs Semantic Scholar) ---
+                    # Handle varying capitalization/field names across data sources
                     title = row.get("Title") or row.get("title")
                     abstract = row.get("Abstract") or row.get("summary") or row.get("abstract")
                     
-                    # Se não tem resumo, não dá pra avaliar bem
+                    # Skip entries without abstracts; insufficient context for evaluation
                     if not title or not abstract:
                         continue
                         
-                    # Prepara dados para salvar (Unifica formato)
+                    # Standardize output format
                     save_row = {
                         "Title": title,
                         "Year": row.get("Year") or row.get("year"),
@@ -140,14 +140,14 @@ def filter_with_llama(input_folder, output_folder):
                         "Abstract": abstract
                     }
 
-                    # --- INFERÊNCIA ---
+                    # --- INFERENCE ---
                     prompt = construct_prompt(persona, topic, criteria, title, abstract)
                     
-                    # Roda o modelo
+                    # Execute model
                     output = llm(prompt, max_tokens=5, stop=["<|im_end|>", "\n"], echo=False)
                     decision = output['choices'][0]['text'].strip().upper()
                     
-                    # Limpeza simples da resposta (caso venha "YES." ou "YES - ...")
+                    # Simple output sanitization (handles "YES.", "YES - ...")
                     clean_decision = "YES" if "YES" in decision else "NO"
                     
                     print(f"Analyzing: {title[:50]}... -> {Fore.CYAN}{clean_decision}{Style.RESET_ALL}")
@@ -155,7 +155,7 @@ def filter_with_llama(input_folder, output_folder):
                     if clean_decision == "YES":
                         save_row["AI_Decision"] = "YES"
                         writer.writerow(save_row)
-                        outfile.flush() # Garante que salve a cada linha
+                        outfile.flush() # Flush immediately to save progress
                         approved_count += 1
                         
                     total_processed += 1

@@ -16,7 +16,7 @@ def ask_confirmation(queries, timeout=10, max_preview=20):
         for q in queries:
             print(f" - {q}")
 
-    answer = [None]  # mutable container to store the user's answer
+    answer = [None]
 
     def user_input():
         ans = input(f"\nDo you want to proceed? (Y/N) [default Y in {timeout}s]: ").strip()
