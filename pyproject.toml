@@ -22,14 +22,14 @@ dependencies = [
     "requests>=2.31.0",
     "colorama>=0.4.6",
     "tqdm>=4.66.0",
-    "numpy>=1.26.0",
+    "numpy>=1.21.0",
     "PyYAML>=6.0",
     "huggingface-hub>=0.20.0",
     "scholarly>=1.7.11",
     "arxiv>=2.1.0",
     "pypdf>=3.17.0",
-    "pandas>=2.1.0",
-    "matplotlib>=3.8.0",
+    "pandas>=1.5.0",
+    "matplotlib>=3.7.0",
 ]
 
 [project.optional-dependencies]
