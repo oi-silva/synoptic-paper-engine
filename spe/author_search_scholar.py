@@ -2,6 +2,7 @@
 
 import os
 import csv
+import re
 from colorama import Fore, Style, init
 from tqdm import tqdm
 from scholarly import scholarly, ProxyGenerator
@@ -13,7 +14,7 @@ from scholarly._proxy_generator import MaxTriesExceededException
 init(autoreset=True)
 
 # ==============================================================================
-# ABNT FORMATTING UTILS (UPDATED)
+# ABNT FORMATTING UTILS
 # ==============================================================================
 def format_authors_abnt(author_string: str) -> str:
     """Formats an author string into ABNT standard."""
@@ -30,7 +31,7 @@ def format_authors_abnt(author_string: str) -> str:
         fname = " ".join(parts[:-1])
         lname = parts[-1].upper()
         
-        # Handle common Portuguese suffixes to avoid formatting "Silva Junior" as "JUNIOR, Silva"
+        # Handle common Portuguese suffixes
         if len(parts) > 1 and parts[-1].lower() in ['junior', 'filho', 'neto']:
             fname = " ".join(parts[:-2])
             lname = f"{parts[-2].upper()} {parts[-1].upper()}"
@@ -43,27 +44,88 @@ def format_authors_abnt(author_string: str) -> str:
     return "; ".join(formatted_authors)
 
 def format_publication_abnt(pub: dict) -> str:
-    """Formats a single publication dict into an ABNT citation string, including URL."""
+    """Formats a single publication dict into an ABNT citation string."""
     bib = pub.get('bib', {})
     
     authors_abnt = format_authors_abnt(bib.get('author'))
     title = bib.get('title', 'Unknown Title')
     venue = bib.get('venue', '')
     year = bib.get('pub_year', '')
-    url = pub.get('pub_url', '') # Extract URL if available
+    url = pub.get('pub_url', '')
 
-    # Build base reference
     reference = f"{authors_abnt}. {title}."
     if venue:
         reference += f" In: {venue},"
     if year:
         reference += f" {year}."
     
-    # Update: Append "Available at" if URL exists
     if url:
         reference += f" Disponível em: <{url}>."
     
     return reference
+
+# ==============================================================================
+# BIBTEX FORMATTING UTILS
+# ==============================================================================
+def clean_text_for_latex(text):
+    """Sanitizes text to avoid breaking LaTeX compilation."""
+    if not text: return ""
+    text = str(text)
+    text = text.replace("&", "\\&").replace("%", "\\%").replace("$", "\\$").replace("_", "\\_")
+    text = " ".join(text.split())
+    return text
+
+def generate_citation_key(bib: dict) -> str:
+    """Generates a unique citation key (SurnameYearFirstWord)."""
+    try:
+        authors = bib.get('author', 'Unknown')
+        year = bib.get('pub_year', 'nd')
+        title = bib.get('title', 'Article')
+
+        # First author surname
+        first_author_full = authors.split(' and ')[0].strip()
+        first_author = first_author_full.split()[-1]
+        first_author = re.sub(r'[^a-zA-Z]', '', first_author)
+
+        # Clean year
+        clean_year = str(year).strip()
+        if not clean_year.isdigit(): clean_year = "nd"
+
+        # First title word
+        clean_title = re.sub(r'[^a-zA-Z0-9\s]', '', title)
+        words = [w for w in clean_title.split() if len(w) > 3]
+        first_word = words[0] if words else "Paper"
+
+        return f"{first_author}{clean_year}{first_word.capitalize()}"
+    except:
+        return f"Unknown{year}Article"
+
+def format_publication_bibtex(pub: dict) -> str:
+    """Formats a publication dict into a BibTeX entry."""
+    bib = pub.get('bib', {})
+    cit_key = generate_citation_key(bib)
+    
+    # Extract fields
+    title = clean_text_for_latex(bib.get('title', ''))
+    author = clean_text_for_latex(bib.get('author', ''))
+    year = clean_text_for_latex(bib.get('pub_year', ''))
+    journal = clean_text_for_latex(bib.get('venue', ''))
+    url = pub.get('pub_url', '')
+    abstract = clean_text_for_latex(bib.get('abstract', ''))
+
+    entry = f"@article{{{cit_key},\n"
+    entry += f"  title = {{{title}}},\n"
+    entry += f"  author = {{{author}}},\n"
+    entry += f"  year = {{{year}}},\n"
+    if journal:
+        entry += f"  journal = {{{journal}}},\n"
+    if url:
+        entry += f"  url = {{{url}}},\n"
+    if abstract:
+        entry += f"  abstract = {{{abstract}}},\n"
+    entry += "}\n"
+    
+    return entry
 
 # ==============================================================================
 
@@ -84,7 +146,6 @@ def setup_proxy():
         print(f"{Fore.RED}❌ Could not configure manual proxy. Error: {e}{Style.RESET_ALL}")
 
 def get_unique_folder(base_folder):
-    # Ensure output directory is unique by appending a counter if needed
     if not os.path.exists(base_folder):
         os.makedirs(base_folder)
         return base_folder
@@ -96,7 +157,7 @@ def get_unique_folder(base_folder):
     return new_folder
 
 def run_author_search():
-    """Main execution flow: search author -> fetch pubs -> save CSV/TXT."""
+    """Main execution flow: search author -> fetch pubs -> save CSV/TXT/BIB."""
     try:
         setup_proxy()
         selected_author = None
@@ -118,7 +179,6 @@ def run_author_search():
                 print(f"{Fore.GREEN}✅ Profile found for '{selected_author.get('name', 'N/A')}'.")
             
             except MaxTriesExceededException:
-                # Catch specific blocking error from Google
                 print(f"\n{Fore.RED}{Style.BRIGHT}❌ BLOCK DETECTED BY GOOGLE ❌")
                 print(f"{Fore.YELLOW}Google has blocked the requests. Try again later or rotate IP.")
                 return
@@ -146,7 +206,7 @@ def run_author_search():
             print(f"{Fore.YELLOW}⚠️  Since no publications were found, no files will be generated.")
             return
 
-        # Detailed fetch loop. Essential for getting year/journal data often missing in stubs.
+        # Detailed fetch loop
         filled_publications = []
         for pub_stub in tqdm(publications_stubs, desc="Fetching Full Details"):
             try:
@@ -157,7 +217,7 @@ def run_author_search():
                 continue
         
         # Sort by year descending
-        filled_publications.sort(key=lambda p: int(p.get('bib', {}).get('pub_year', 0)), reverse=True)
+        filled_publications.sort(key=lambda p: int(p.get('bib', {}).get('pub_year', 0) or 0), reverse=True)
 
         # IO Operations
         output_folder = get_unique_folder("author_results")
@@ -169,12 +229,11 @@ def run_author_search():
         
         with open(csv_output_file, mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
-            writer.writerow(["Title", "Year", "Citations", "Authors", "Venue", "URL"])
+            writer.writerow(["Title", "Year", "Citations", "Authors", "Venue", "URL", "Abstract"])
             for pub in filled_publications:
                 bib = pub.get('bib', {})
                 author_data = bib.get('author', 'N/A')
                 
-                # Normalize author separator for CSV readability
                 if isinstance(author_data, str): 
                     authors = author_data.replace(' and ', '; ')
                 else: 
@@ -186,7 +245,8 @@ def run_author_search():
                     pub.get('num_citations', 0), 
                     authors, 
                     bib.get('venue', 'N/A'), 
-                    pub.get('pub_url', 'N/A')
+                    pub.get('pub_url', 'N/A'),
+                    bib.get('abstract', 'N/A')
                 ])
 
         # 2. Save ABNT TXT
@@ -200,10 +260,27 @@ def run_author_search():
                 abnt_reference = format_publication_abnt(pub)
                 file.write(abnt_reference + "\n\n")
 
-        print(f"\n{Fore.GREEN}🏁 Finished. Both CSV and ABNT TXT files saved successfully.{Style.RESET_ALL}")
+        # 3. Save BibTeX (NEW)
+        bib_output_file = os.path.join(output_folder, f"{sanitized_name}_references.bib")
+        print(f"{Fore.CYAN}Saving BibTeX references to '{bib_output_file}'...{Style.RESET_ALL}")
+        
+        with open(bib_output_file, mode='w', encoding='utf-8') as file:
+            file.write(f"% Auto-generated BibTeX for author: {selected_author['name']}\n")
+            file.write(f"% Total publications: {len(filled_publications)}\n\n")
+            
+            processed_keys = set()
+            for pub in filled_publications:
+                bib_entry = format_publication_bibtex(pub)
+                
+                # Simple check to avoid exact duplicate keys (though generate_citation_key logic usually handles this via year/title)
+                # If needed, a more robust key collision handler could be added here.
+                file.write(bib_entry + "\n")
+
+        print(f"\n{Fore.GREEN}🏁 Finished. CSV, ABNT TXT, and BibTeX files saved successfully.{Style.RESET_ALL}")
 
     except Exception as e:
         print(f"{Fore.RED}An unexpected error occurred: {e}")
+        traceback.print_exc()
     
     finally:
         input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")

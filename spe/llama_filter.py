@@ -2,6 +2,7 @@ import os
 import csv
 import sys
 from colorama import Fore, Style, init
+from tqdm import tqdm  # Importando barra de progresso
 
 # Attempt imports with specific error handling for llama-cpp-python
 try:
@@ -99,14 +100,31 @@ def filter_with_llama(input_folder, output_folder):
     # 2. Input Collection
     persona, topic, criteria = get_user_criteria()
     
-    # 3. File Setup
-    csv_files = [f for f in os.listdir(input_folder) if f.endswith('.csv')]
+    # 3. File Setup & Pre-counting for Progress Bar
+    # MODIFICAÇÃO AQUI: Ignora arquivos que começam com 'output_statistics'
+    csv_files = [f for f in os.listdir(input_folder) if f.endswith('.csv') and not f.startswith("output_statistics")]
+    
+    if not csv_files:
+        print(f"{Fore.RED}❌ No valid article CSV files found to process.")
+        return
+
+    print(f"{Fore.YELLOW}📊 Calculating total workload...{Style.RESET_ALL}")
+    total_articles = 0
+    for filename in csv_files:
+        try:
+            with open(os.path.join(input_folder, filename), 'r', encoding='utf-8') as f:
+                # Count lines minus header (if file not empty)
+                row_count = sum(1 for _ in f) - 1
+                total_articles += max(0, row_count)
+        except Exception:
+            continue
+
     output_csv = os.path.join(output_folder, "llama_filtered_articles.csv")
     
     total_processed = 0
     approved_count = 0
     
-    print(f"\n{Fore.GREEN}⚡ Starting Inference on {len(csv_files)} files...{Style.RESET_ALL}")
+    print(f"\n{Fore.GREEN}⚡ Starting Inference on {total_articles} articles...{Style.RESET_ALL}")
     
     with open(output_csv, 'w', newline='', encoding='utf-8') as outfile:
         # Initialize Writer
@@ -114,51 +132,48 @@ def filter_with_llama(input_folder, output_folder):
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
         
-        for filename in csv_files:
-            file_path = os.path.join(input_folder, filename)
-            
-            with open(file_path, 'r', encoding='utf-8') as infile:
-                reader = csv.DictReader(infile)
+        # Initialize Progress Bar
+        with tqdm(total=total_articles, unit="paper", desc="AI Analysis", colour="green") as pbar:
+            for filename in csv_files:
+                file_path = os.path.join(input_folder, filename)
                 
-                for row in reader:
-                    # --- NORMALIZATION (ArXiv vs Semantic Scholar) ---
-                    # Handle varying capitalization/field names across data sources
-                    title = row.get("Title") or row.get("title")
-                    abstract = row.get("Abstract") or row.get("summary") or row.get("abstract")
+                with open(file_path, 'r', encoding='utf-8') as infile:
+                    reader = csv.DictReader(infile)
                     
-                    # Skip entries without abstracts; insufficient context for evaluation
-                    if not title or not abstract:
-                        continue
+                    for row in reader:
+                        # --- NORMALIZATION ---
+                        title = row.get("Title") or row.get("title")
+                        abstract = row.get("Abstract") or row.get("summary") or row.get("abstract")
                         
-                    # Standardize output format
-                    save_row = {
-                        "Title": title,
-                        "Year": row.get("Year") or row.get("year"),
-                        "Citations": row.get("Citations") or row.get("citationCount") or 0,
-                        "Authors": row.get("Authors") or row.get("authors"),
-                        "URL": row.get("URL") or row.get("pdf_url") or row.get("url"),
-                        "Abstract": abstract
-                    }
+                        if not title or not abstract:
+                            pbar.update(1) # Update progress even if skipped
+                            continue
+                            
+                        save_row = {
+                            "Title": title,
+                            "Year": row.get("Year") or row.get("year"),
+                            "Citations": row.get("Citations") or row.get("citationCount") or 0,
+                            "Authors": row.get("Authors") or row.get("authors"),
+                            "URL": row.get("URL") or row.get("pdf_url") or row.get("url"),
+                            "Abstract": abstract
+                        }
 
-                    # --- INFERENCE ---
-                    prompt = construct_prompt(persona, topic, criteria, title, abstract)
-                    
-                    # Execute model
-                    output = llm(prompt, max_tokens=5, stop=["<|im_end|>", "\n"], echo=False)
-                    decision = output['choices'][0]['text'].strip().upper()
-                    
-                    # Simple output sanitization (handles "YES.", "YES - ...")
-                    clean_decision = "YES" if "YES" in decision else "NO"
-                    
-                    print(f"Analyzing: {title[:50]}... -> {Fore.CYAN}{clean_decision}{Style.RESET_ALL}")
-                    
-                    if clean_decision == "YES":
-                        save_row["AI_Decision"] = "YES"
-                        writer.writerow(save_row)
-                        outfile.flush() # Flush immediately to save progress
-                        approved_count += 1
+                        # --- INFERENCE ---
+                        prompt = construct_prompt(persona, topic, criteria, title, abstract)
                         
-                    total_processed += 1
+                        output = llm(prompt, max_tokens=5, stop=["<|im_end|>", "\n"], echo=False)
+                        decision = output['choices'][0]['text'].strip().upper()
+                        
+                        clean_decision = "YES" if "YES" in decision else "NO"
+                        
+                        if clean_decision == "YES":
+                            save_row["AI_Decision"] = "YES"
+                            writer.writerow(save_row)
+                            outfile.flush()
+                            approved_count += 1
+                            
+                        total_processed += 1
+                        pbar.update(1)
 
     print(f"\n{Fore.GREEN}🏁 Filtering Complete!{Style.RESET_ALL}")
     print(f"Processed: {total_processed}")

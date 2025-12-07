@@ -2,23 +2,21 @@ import os
 import re
 import shutil
 import pypdf
+import csv
 from colorama import Fore, Style, init
 from . import parse_query as pq
 
 init(autoreset=True)
 
 # =================CONFIGURATION=================
-DEBUG_MODE = False  # Toggles verbose logging for internal logic inspection
-PROXIMITY_WINDOW = 50  # Max token distance to consider terms contextually related
+DEBUG_MODE = False  
+PROXIMITY_WINDOW = 50  
 SCORE_HIGH_THRESHOLD = 100
 SCORE_MEDIUM_THRESHOLD = 50
 # ===============================================
 
 def extract_text_from_pdf(pdf_path):
-    """
-    Extracts raw text content from a PDF file.
-    Swallows exceptions to ensure batch processing continuity.
-    """
+    """Extracts raw text content from a PDF file."""
     text = ""
     try:
         reader = pypdf.PdfReader(pdf_path)
@@ -32,59 +30,31 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 def find_term_indices(text_words, term):
-    """
-    Locates indices of a specific term within the tokenized text.
-    Differentiates between exact phrase matching (*term*) and loose substring matching.
-    """
+    """Locates indices of a specific term within the tokenized text."""
     indices = []
-    
     # Logic 1: Exact Phrase Matching (*term*)
     if term.startswith("*") and term.endswith("*"):
         clean_phrase = term.strip("*").lower()
         phrase_words = clean_phrase.split()
-        
-        if not phrase_words: 
-            return []
-            
+        if not phrase_words: return []
         first_word = phrase_words[0]
         phrase_len = len(phrase_words)
-        
-        # Scan text for the first word, then verify the subsequent sequence
         for i, word in enumerate(text_words):
             if word == first_word:
                 if text_words[i:i+phrase_len] == phrase_words:
                     indices.append(i)
-
     # Logic 2: Loose Token Matching
     else:
         clean_term = term.lower()
         for i, word in enumerate(text_words):
-            # Permissive matching strategy: 'in' operator handles substrings 
-            # (e.g., '2d' successfully matches inside '2d-materials')
             if clean_term in word: 
                 indices.append(i)
-                
     return indices
 
 def calculate_relevance_score(text, query_expansion, filename=""):
-    """
-    Computes a relevance score based on term presence and proximity.
-    
-    Pipeline:
-    1. Tokenize text (alphanumeric split).
-    2. Handle Implicit ANDs in query.
-    3. Check Forbidden terms (immediate rejection).
-    4. Calculate Base Score based on mandatory term coverage.
-    5. Apply Proximity Bonus if terms appear within the defined window.
-    """
-    # Aggressive tokenization: splits on non-alphanumeric (e.g., "2D-Materials" -> "2d", "materials")
+    """Computes a relevance score based on term presence and proximity."""
     text_words = re.findall(r'[a-zA-Z0-9]+', text.lower()) 
 
-    if DEBUG_MODE and filename:
-        print(f"\n{Fore.MAGENTA}[DEBUG] File: {filename}")
-        print(f"[DEBUG] First 20 tokens: {text_words[:20]}")
-
-    # Parse query components (Mandatory vs Forbidden)
     if " NOT " in query_expansion:
         parts = query_expansion.split(" NOT ")
         must_have_str = parts[0]
@@ -93,39 +63,28 @@ def calculate_relevance_score(text, query_expansion, filename=""):
         must_have_str = query_expansion
         forbidden_str = ""
 
-    # --- IMPLICIT AND HANDLING ---
-    # Standard split by explicit " AND "
+    # Implicit AND handling
     raw_must_terms = [t.strip() for t in must_have_str.split(" AND ") if t.strip()]
     must_terms = []
-    
-    # Post-process to handle space-separated terms without asterisks
     for t in raw_must_terms:
-        # Preserve exact phrases wrapped in asterisks
         if t.startswith("*") and t.endswith("*"):
             must_terms.append(t)
-        # Treat spaces in non-asterisk strings as implicit ANDs
-        # e.g., "materials 2d" -> required ["materials", "2d"]
         elif " " in t:
-            sub_terms = t.split()
-            must_terms.extend(sub_terms)
-            if DEBUG_MODE and filename:
-                print(f"{Fore.CYAN}[DEBUG] Resolved implicit AND: '{t}' -> {sub_terms}")
+            must_terms.extend(t.split())
         else:
             must_terms.append(t)
     
     forbidden_terms = [t.strip() for t in forbidden_str.split() if t.strip()]
 
-    # 1. Check Forbidden Terms (Immediate Veto)
+    # 1. Check Forbidden
     for term in forbidden_terms:
         clean = term.strip("*").lower()
         if clean in text.lower():
-            if DEBUG_MODE: print(f"{Fore.RED}[DEBUG] Vetoed by forbidden term: {clean}")
             return 0 
 
-    # 2. Check Mandatory Terms & Collect Indices
+    # 2. Check Mandatory
     term_positions = {}
     missing_terms = []
-    
     for term in must_terms:
         indices = find_term_indices(text_words, term)
         if not indices:
@@ -133,49 +92,47 @@ def calculate_relevance_score(text, query_expansion, filename=""):
         else:
             term_positions[term] = indices
 
-    # 3. Base Scoring (Coverage)
+    # 3. Base Scoring
     if missing_terms:
-        if DEBUG_MODE: print(f"{Fore.YELLOW}[DEBUG] Missing Terms: {missing_terms}")
-        
-        # If all terms are missing, score is 0
-        if len(missing_terms) == len(must_terms):
-            return 0 
-        
-        # Partial match calculation: Proportional score maxing at 40 (Low Relevance)
+        if len(missing_terms) == len(must_terms): return 0 
         found_count = len(must_terms) - len(missing_terms)
         return int((found_count / len(must_terms)) * 40) 
 
-    # If execution reaches here, all mandatory terms are present.
-    if DEBUG_MODE: print(f"{Fore.GREEN}[DEBUG] Full term coverage achieved! {list(term_positions.keys())}")
-    score = 60 # Baseline for Medium Relevance
+    score = 60 # Baseline Medium
     
-    # 4. Proximity Bonus (High Relevance Check)
+    # 4. Proximity Bonus
     if len(must_terms) > 1:
-        # Flatten and sort all found indices
         all_indices = []
         for term in term_positions:
             all_indices.extend(term_positions[term])
         all_indices.sort()
         
-        # Heuristic: Find the minimum distance between any two found terms
         if len(all_indices) > 1:
             min_dist = float('inf')
             for i in range(len(all_indices) - 1):
                 dist = all_indices[i+1] - all_indices[i]
                 if dist < min_dist:
                     min_dist = dist
-            
-            # Apply bonus if terms are clustered within the window
             if min_dist <= PROXIMITY_WINDOW:
                 score += 50 
-                if DEBUG_MODE: print(f"{Fore.CYAN}[DEBUG] Proximity Bonus Applied (Min Dist: {min_dist})")
 
     return score
 
-def run_content_filter(input_folder, user_query_string):
+def display_stats(stats):
+    """Displays filtering statistics in a clean, list-based format."""
+    total = sum(stats.values())
+    
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Filtering Summary ==={Style.RESET_ALL}")
+    print(f"   {Fore.GREEN}• High Relevance   : {stats['High']:>4}")
+    print(f"   {Fore.YELLOW}• Medium Relevance : {stats['Medium']:>4}")
+    print(f"   {Fore.WHITE}• Low Relevance    : {stats['Low']:>4}")
+    print(f"   {Fore.RED}• Rejected         : {stats['Rejected']:>4}")
+    print(f"   {Fore.CYAN}--------------------------")
+    print(f"   {Style.BRIGHT}Total Processed    : {total:>4}{Style.RESET_ALL}")
+
+def run_csv_content_filter(input_folder, user_query_string):
     """
-    Controller function.
-    Expands the query, iterates over PDFs, scores them, and sorts into relevance folders.
+    Filters rows in CSV files based on Title + Abstract content.
     """
     try:
         expanded_queries = pq.parse_query(user_query_string)
@@ -183,7 +140,101 @@ def run_content_filter(input_folder, user_query_string):
         print(f"{Fore.RED}❌ Query Parsing Error: {e}")
         return
 
-    # Prepare output directory structure
+    # Output setup
+    base_output = os.path.join("content_filtered_csv", os.path.basename(os.path.normpath(input_folder)))
+    os.makedirs(base_output, exist_ok=True)
+    
+    csv_files = [f for f in os.listdir(input_folder) if f.lower().endswith('.csv')]
+    if not csv_files:
+        print(f"{Fore.RED}❌ No CSV files found in target directory.")
+        return
+
+    print(f"\n{Fore.CYAN}--- CSV Content Filter (Abstract Analysis) ---{Style.RESET_ALL}")
+    
+    stats = {"High": 0, "Medium": 0, "Low": 0, "Rejected": 0}
+    
+    # Prepare output files
+    out_files = {
+        "High": open(os.path.join(base_output, "High_Relevance.csv"), 'w', newline='', encoding='utf-8'),
+        "Medium": open(os.path.join(base_output, "Medium_Relevance.csv"), 'w', newline='', encoding='utf-8'),
+        "Low": open(os.path.join(base_output, "Low_Relevance.csv"), 'w', newline='', encoding='utf-8')
+    }
+    
+    writers = {}
+    headers_written = {"High": False, "Medium": False, "Low": False}
+
+    for filename in csv_files:
+        filepath = os.path.join(input_folder, filename)
+        
+        with open(filepath, 'r', encoding='utf-8') as f:
+            try:
+                reader = csv.DictReader(f)
+                fieldnames = reader.fieldnames
+                
+                out_fieldnames = fieldnames + ["Relevance_Score"]
+
+                for row in reader:
+                    title = row.get("Title", row.get("title", ""))
+                    abstract = row.get("Abstract", row.get("abstract", row.get("summary", "")))
+                    
+                    full_text = f"{title} . {abstract}"
+                    
+                    if len(full_text) < 10:
+                        continue
+
+                    max_score = 0
+                    for scenario in expanded_queries:
+                        score = calculate_relevance_score(full_text, scenario)
+                        if score > max_score:
+                            max_score = score
+
+                    category = "Rejected"
+                    if max_score >= SCORE_HIGH_THRESHOLD:
+                        category = "High"
+                    elif max_score >= SCORE_MEDIUM_THRESHOLD:
+                        category = "Medium"
+                    elif max_score > 0:
+                        category = "Low"
+
+                    if category != "Rejected":
+                        row["Relevance_Score"] = max_score
+                        
+                        if not headers_written[category]:
+                            writers[category] = csv.DictWriter(out_files[category], fieldnames=out_fieldnames)
+                            writers[category].writeheader()
+                            headers_written[category] = True
+                        
+                        writers[category].writerow(row)
+                        stats[category] += 1
+                        
+                        if category == "High":
+                            print(f"{Fore.GREEN}✅ HIGH: {title[:40]}... (Score: {max_score})")
+                    else:
+                        stats["Rejected"] += 1
+
+            except Exception as e:
+                print(f"{Fore.RED}Error reading {filename}: {e}")
+
+    for f in out_files.values():
+        f.close()
+
+    for cat, count in stats.items():
+        if cat != "Rejected" and count == 0:
+            os.remove(os.path.join(base_output, f"{cat}_Relevance.csv"))
+
+    display_stats(stats)
+    print(f"\n{Fore.CYAN}Results saved in: {base_output}{Style.RESET_ALL}")
+
+def run_content_filter(input_folder, user_query_string):
+    """
+    Controller function for PDFs.
+    """
+    try:
+        expanded_queries = pq.parse_query(user_query_string)
+    except Exception as e:
+        print(f"{Fore.RED}❌ Query Parsing Error: {e}")
+        return
+
     base_output = os.path.join("content_filtered", os.path.basename(os.path.normpath(input_folder)))
     dirs = {
         "High": os.path.join(base_output, "High_Relevance"),
@@ -194,9 +245,8 @@ def run_content_filter(input_folder, user_query_string):
     for d in dirs.values():
         os.makedirs(d, exist_ok=True)
 
-    print(f"\n{Fore.CYAN}--- Ranked PDF Filter (DEBUG: {DEBUG_MODE}) ---{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}--- Ranked PDF Filter ---{Style.RESET_ALL}")
     
-    # Locate PDFs (Handle standard directory or 'pdfs' subdirectory)
     pdf_files = [f for f in os.listdir(input_folder) if f.lower().endswith('.pdf')]
     if not pdf_files and os.path.exists(os.path.join(input_folder, "pdfs")):
         input_folder = os.path.join(input_folder, "pdfs")
@@ -208,27 +258,22 @@ def run_content_filter(input_folder, user_query_string):
 
     stats = {"High": 0, "Medium": 0, "Low": 0, "Rejected": 0}
 
-    # Main Processing Loop
     for i, filename in enumerate(pdf_files):
         pdf_path = os.path.join(input_folder, filename)
-        
         full_text = extract_text_from_pdf(pdf_path)
         
-        # Reject empty files (scanned images or corrupted)
         if not full_text or len(full_text) < 10:
-            if DEBUG_MODE: print(f"{Fore.RED}[DEBUG] Extraction failed/empty for: {filename}")
             stats["Rejected"] += 1
             continue
 
-        # Evaluate against all query expansions and take the best score
         max_score = 0
         for scenario in expanded_queries:
             score = calculate_relevance_score(full_text, scenario, filename)
             if score > max_score:
                 max_score = score
 
-        # Categorize
         category = "Rejected"
+        color = Fore.WHITE
         if max_score >= SCORE_HIGH_THRESHOLD:
             category = "High"
             color = Fore.GREEN
@@ -237,9 +282,7 @@ def run_content_filter(input_folder, user_query_string):
             color = Fore.YELLOW
         elif max_score > 0:
             category = "Low"
-            color = Fore.WHITE
         
-        # File Operations
         if category != "Rejected":
             shutil.copy2(pdf_path, os.path.join(dirs[category], filename))
             stats[category] += 1
@@ -247,4 +290,4 @@ def run_content_filter(input_folder, user_query_string):
         else:
             stats["Rejected"] += 1
 
-    print(f"\nStats: {stats}")
+    display_stats(stats)

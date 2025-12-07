@@ -8,7 +8,6 @@ from colorama import init, Fore, Style
 import subprocess
 import importlib.util
 
-
 # Imports relative to the current package
 from . import parse_query as pq
 from . import preview_step as ps
@@ -17,6 +16,7 @@ from . import statistics_analyzer as sa
 from . import author_search_scholar as ass
 from . import pyarxiv 
 from . import pdf_content_filter as pcf
+from . import bibtex_generator as bg
 
 # Initializes colorama
 init(autoreset=True)
@@ -25,7 +25,9 @@ init(autoreset=True)
 APP_NAME = "Synoptic Paper Engine"
 USER_AGENT = "Synoptic-Paper-Engine/1.0"
 API_KEY = None  
-FIELDS = "title,authors,year,citationCount,url,abstract"
+
+# --- ATUALIZAÇÃO AQUI: Adicionei 'venue' na lista de campos ---
+FIELDS = "title,authors,year,citationCount,url,abstract,venue"
 
 
 def display_banner():
@@ -278,13 +280,25 @@ def run_bibliographic_search():
 
                 with open(output_file, mode='w', newline='', encoding='utf-8') as file:
                     writer = csv.writer(file)
-                    writer.writerow(["Query", "Title", "Year", "Citations", "Authors", "URL", "Abstract"])
+                    # --- ATUALIZAÇÃO AQUI: Adicionei 'Venue' no cabeçalho do CSV ---
+                    writer.writerow(["Query", "Title", "Year", "Citations", "Authors", "Venue", "URL", "Abstract"])
                     for paper in filtered:
                         authors = "; ".join([a["name"] for a in paper.get("authors", [])])
-                        writer.writerow([query, paper.get("title", ""), paper.get("year", ""), paper.get("citationCount", 0), authors, paper.get("url", ""), paper.get("abstract", "")])
-                print(f"{Fore.GREEN}✅ {len(filtered)} articles saved, batch {batch + 1} -> {output_file}")
+                        
+                        # --- ATUALIZAÇÃO AQUI: Adicionei a extração do campo 'venue' ---
+                        writer.writerow([
+                            query, 
+                            paper.get("title", ""), 
+                            paper.get("year", ""), 
+                            paper.get("citationCount", 0), 
+                            authors, 
+                            paper.get("venue", ""), # Extrai o Journal/Venue
+                            paper.get("url", ""), 
+                            paper.get("abstract", "")
+                        ])
+                print(f"{Fore.GREEN}{len(filtered)} articles saved, batch {batch + 1} -> {output_file}")
             else:
-                print(f"{Fore.YELLOW}⚠️ No articles in batch {batch + 1} met the filter criteria.")
+                print(f"{Fore.YELLOW}No articles in batch {batch + 1} met the filter criteria.")
             time.sleep(3)
 
         with open(output_statistics, mode='a', newline='', encoding='utf-8') as file:
@@ -296,6 +310,7 @@ def run_bibliographic_search():
     print(f"   please run {Fore.CYAN}Option 6 (Analyze Results){Style.RESET_ALL} from the main menu.")
     
     print(f"\n{Fore.GREEN}🏁 Finished.")
+    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
 def ensure_llama_installed():
     """
@@ -342,27 +357,30 @@ def main_menu():
         print(f"{Fore.YELLOW}2. Run Semantic Scholar Search (Metadata Only)")
         print(f"{Fore.YELLOW}3. Search by Author (Google Scholar)")
         print(f"{Fore.YELLOW}4. Filter Papers with AI (Llama)")
-        print(f"{Fore.YELLOW}5. Filter Local PDFs by Content (Query Engine)")  # NEW OPTION
-        print(f"{Fore.YELLOW}6. Analyze Results")
-        print(f"{Fore.YELLOW}7. Setup Local AI (Llama)")
-        print(f"{Fore.YELLOW}8. Help / Information")
-        print(f"{Fore.YELLOW}9. Exit")
+        print(f"{Fore.YELLOW}5. Filter Content (PDFs or CSVs)") 
+        print(f"{Fore.YELLOW}6. Analyze Results (Graphs & Stats)")
+        print(f"{Fore.YELLOW}7. Generate BibTeX File (LaTeX)")
+        print(f"{Fore.YELLOW}8. Setup Local AI (Llama)")
+        print(f"{Fore.YELLOW}9. Help / Information")
+        print(f"{Fore.YELLOW}0. Exit")
         
-        choice = input(f"\n{Fore.CYAN}Enter your choice (1-9): {Style.RESET_ALL}")
+        choice = input(f"\n{Fore.CYAN}Enter your choice (0-9): {Style.RESET_ALL}")
         
+        # --- 1. ARXIV SEARCH ---
         if choice == "1":
             run_arxiv_interface()
             
+        # --- 2. SEMANTIC SCHOLAR SEARCH ---
         elif choice == "2":
             run_bibliographic_search()
 
+        # --- 3. AUTHOR SEARCH ---
         elif choice == "3":
             ass.run_author_search()
 
+        # --- 4. AI FILTER (LLAMA) ---
         elif choice == "4":
-            # Check for Llama installation before proceeding
             if ensure_llama_installed():
-                # Logic to choose folder (only if Llama is present)
                 all_entries = os.listdir('.')
                 potential_folders = [d for d in all_entries if os.path.isdir(d) and (d.startswith("results") or d.startswith("arxiv_results"))]
                 
@@ -402,17 +420,16 @@ def main_menu():
             else:
                 input(f"\n{Fore.YELLOW}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
-        # --- NEW OPTION 5: PDF CONTENT FILTER ---
+        # --- 5. CONTENT FILTER (PDF & CSV) ---
         elif choice == "5":
-            print(f"\n{Fore.CYAN}--- Filter Local PDFs by Content ---")
+            print(f"\n{Fore.CYAN}--- Filter Content (PDFs or CSVs) ---")
             
-            # 1. Select Folder
+            # Select Folder
             all_entries = os.listdir('.')
-            # Filter for folders that likely contain search results
             potential_folders = [d for d in all_entries if os.path.isdir(d) and ("arxiv" in d or "results" in d)]
             
             if not potential_folders:
-                print(f"{Fore.RED}❌ No result folders found containing PDFs.")
+                print(f"{Fore.RED}❌ No result folders found.")
                 input(f"\n{Fore.GREEN}Press Enter to return...{Style.RESET_ALL}")
                 continue
                 
@@ -425,13 +442,26 @@ def main_menu():
                 if 0 <= idx < len(potential_folders):
                     selected_folder = potential_folders[idx]
                     
-                    # 2. Input Query
-                    print(f"\n{Fore.WHITE}Enter filter query (e.g., '(*DFT* OR *VASP*) AND *Lithium*'):")
+                    # Check file types
+                    has_pdfs = any(f.endswith('.pdf') for f in os.listdir(selected_folder)) or \
+                               (os.path.exists(os.path.join(selected_folder, "pdfs")) and os.listdir(os.path.join(selected_folder, "pdfs")))
+                    has_csvs = any(f.endswith('.csv') for f in os.listdir(selected_folder))
+                    
+                    if not has_pdfs and not has_csvs:
+                        print(f"{Fore.RED}❌ No PDFs or CSVs found in '{selected_folder}'.")
+                        continue
+
+                    print(f"\n{Fore.WHITE}Enter filter query (e.g., '(*DFT* OR *VASP*) AND *Phonon*'):")
                     user_query = input(f"{Fore.GREEN}> {Style.RESET_ALL}")
                     
                     if user_query.strip():
-                        # Execute the filter module
-                        pcf.run_content_filter(selected_folder, user_query)
+                        if has_pdfs:
+                            print(f"\n{Fore.BLUE}ℹ️  Detected PDFs. Running PDF Content Filter...{Style.RESET_ALL}")
+                            pcf.run_content_filter(selected_folder, user_query)
+                        
+                        if has_csvs:
+                            print(f"\n{Fore.BLUE}ℹ️  Detected CSVs. Running Abstract/Metadata Filter...{Style.RESET_ALL}")
+                            pcf.run_csv_content_filter(selected_folder, user_query)
                 else:
                     print(f"{Fore.RED}Invalid selection.")
             except ValueError:
@@ -439,72 +469,17 @@ def main_menu():
             
             input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
-        # --- ANALYZE RESULTS (Moved to 6) ---
+        # --- 6. ANALYZE RESULTS ---
         elif choice == "6":
-            print(f"\n{Fore.CYAN}--- Choose analysis type ---")
-            print(f"{Fore.YELLOW}1. Analyze Search results (CSV)")
-            print(f"{Fore.YELLOW}2. Analyze AI Filter results")
-            print(f"{Fore.YELLOW}0. Return to Main Menu")
-            analysis_choice = input(f"\n{Fore.CYAN}Enter your choice (0-2): {Style.RESET_ALL}")
+            sa.run_analysis_interface()
 
-            if analysis_choice == "1":
-                # Scan for all result folders (ArXiv + Semantic Scholar)
-                all_entries = os.listdir('.')
-                potential_folders = [d for d in all_entries if os.path.isdir(d) and (d.startswith("results") or d.startswith("arxiv_results"))]
-                
-                if not potential_folders:
-                    print(f"{Fore.RED}❌ No 'results' folders found.")
-                    continue
-                
-                print(f"\n{Fore.CYAN}Please choose a folder to analyze:{Style.RESET_ALL}")
-                for i, folder_name in enumerate(potential_folders):
-                    print(f"{Fore.YELLOW}{i+1}. {folder_name}")
-                
-                while True:
-                    try:
-                        choice_num = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}"))
-                        if 1 <= choice_num <= len(potential_folders):
-                            folder_path = potential_folders[choice_num - 1]
-                            sa.analyze_autosearch(folder_path)
-                            input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
-                            break
-                        else:
-                            print(f"{Fore.RED}Invalid number. Please try again.")
-                    except ValueError:
-                        print(f"{Fore.RED}Invalid input. Please enter a number.")
-
-            elif analysis_choice == "2":
-                base_folder = "llama_filtered"
-                all_entries = os.listdir('.')
-                potential_folders = [d for d in all_entries if os.path.isdir(d) and d.startswith(base_folder)]
-                
-                if not potential_folders:
-                    print(f"{Fore.RED}❌ No 'llama_filtered' folders found.")
-                    continue
-                
-                print(f"\n{Fore.CYAN}Please choose a folder to analyze:{Style.RESET_ALL}")
-                for i, folder_name in enumerate(potential_folders):
-                    print(f"{Fore.YELLOW}{i+1}. {folder_name}")
-
-                while True:
-                    try:
-                        choice_num = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}"))
-                        if 1 <= choice_num <= len(potential_folders):
-                            folder_path = potential_folders[choice_num - 1]
-                            sa.analyze_llama_csv_results(folder_path)
-                            input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
-                            break
-                        else:
-                            print(f"{Fore.RED}Invalid number. Please try again.")
-                    except ValueError:
-                        print(f"{Fore.RED}Invalid input. Please enter a number.")
-            elif analysis_choice == "0":
-                continue
-            else:
-                print(f"{Fore.RED}❌ Invalid choice. Please enter 0, 1 or 2.")
-        
-        # --- SETUP LOCAL AI (Moved to 7) ---
+        # --- 7. GENERATE BIBTEX ---
         elif choice == "7":
+            bg.scan_and_generate_bibtex()
+            input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+
+        # --- 8. SETUP LOCAL AI ---
+        elif choice == "8":
             print(f"\n{Fore.CYAN}--- Local AI Setup ---")
             if importlib.util.find_spec("llama_cpp"):
                 print(f"{Fore.GREEN}✅ 'llama-cpp-python' is already installed and ready to use.")
@@ -512,16 +487,16 @@ def main_menu():
             else:
                 ensure_llama_installed()
 
-        # --- HELP (Moved to 8) ---
-        elif choice == "8":
+        # --- 9. HELP ---
+        elif choice == "9":
             hm.show_help_menu()
 
-        # --- EXIT (Moved to 9) ---
-        elif choice == "9":
+        # --- 0. EXIT ---
+        elif choice == "0":
             print(f"{Fore.BLUE}Exiting. Goodbye!{Style.RESET_ALL}")
             sys.exit()
         else:
-            print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 1 to 9.")
+            print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 0 to 9.")
 
 if __name__ == "__main__":
     main_menu()
