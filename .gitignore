@@ -1,3 +1,18 @@
 models/
 __pycache__/
 log/
+# --- Pastas de Resultados (com sufixos -1, -2, etc.) ---
+arxiv_results*/
+results*/
+author_results*/
+
+# --- Pastas de Filtros ---
+content_filtered*/
+content_filtered_csv*/
+llama_filtered*/
+
+# --- Arquivos de Referência Gerados ---
+*.bib
+master_references.bib
+references_raw.bib
+references_filtered.bib

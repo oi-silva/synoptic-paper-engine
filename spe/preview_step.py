@@ -1,3 +1,5 @@
+# preview_step.py
+
 import threading
 
 def ask_confirmation(queries, timeout=10, max_preview=20):

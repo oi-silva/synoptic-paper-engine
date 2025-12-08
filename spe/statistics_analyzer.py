@@ -1,3 +1,5 @@
+# statistics_analyzer.py
+
 import os
 import csv
 from collections import Counter
@@ -310,6 +312,7 @@ def analyze_general_csv_folder(folder_path):
     if HAS_MATPLOTLIB:
         plot_year_distribution(year_counts, log_directory, title_suffix=folder_name)
         plot_top_authors(author_counts, log_directory)
+        print(all_papers)
         plot_citation_distribution(all_papers, log_directory)
     else:
         print(f"{Fore.YELLOW}⚠️ Matplotlib not found. Charts will not be generated.")

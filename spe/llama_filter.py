@@ -1,8 +1,10 @@
+# llama_filter.py
+
 import os
 import csv
 import sys
 from colorama import Fore, Style, init
-from tqdm import tqdm  # Importando barra de progresso
+from tqdm import tqdm
 
 # Attempt imports with specific error handling for llama-cpp-python
 try:
@@ -101,7 +103,6 @@ def filter_with_llama(input_folder, output_folder):
     persona, topic, criteria = get_user_criteria()
     
     # 3. File Setup & Pre-counting for Progress Bar
-    # MODIFICAÇÃO AQUI: Ignora arquivos que começam com 'output_statistics'
     csv_files = [f for f in os.listdir(input_folder) if f.endswith('.csv') and not f.startswith("output_statistics")]
     
     if not csv_files:

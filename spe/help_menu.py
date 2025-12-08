@@ -1,3 +1,5 @@
+# help_menu.py
+
 from colorama import Fore, Style, init
 
 init(autoreset=True)
@@ -7,7 +9,7 @@ def show_autosearch_help():
     Renders the documentation for the Query Parser and Search Engine.
     Explains Boolean logic, Cartesian expansion, and API differences.
     """
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}=== AutoSearch: Query & Features Guide ==={Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}------ AutoSearch: Query & Features Guide ------{Style.RESET_ALL}")
     
     # --- 1. OVERVIEW ---
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. System Architecture:{Style.RESET_ALL}")
@@ -44,69 +46,71 @@ def show_autosearch_help():
 
 def show_content_filter_help():
     """
-    Renders documentation for the Local PDF Content Filter.
-    Details the scoring metrics (Proximity/Coverage) and Implicit AND logic.
+    Renders documentation for the Content Filter (PDF & CSV).
+    Details the scoring metrics and dual-mode operation.
     """
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Local PDF Content Filter: Guide ==={Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}-------- Content Filter: PDF & CSV Guide --------{Style.RESET_ALL}")
     
-    # --- 1. MECHANISM ---
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Mechanism:{Style.RESET_ALL}")
-    print("   This tool extracts raw text from downloaded PDFs and applies a")
-    print(f"   {Style.BRIGHT}Relevance Scoring System{Style.RESET_ALL} based on your query.")
-    print("   It creates three output folders: High, Medium, and Low relevance.")
+    # --- 1. DUAL MODE ---
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Dual Mode Operation:{Style.RESET_ALL}")
+    print("   This tool now works on two types of data:")
+    print(f"   {Fore.YELLOW}A) Local PDFs:{Style.RESET_ALL} Scans the full text of downloaded files.")
+    print(f"   {Fore.YELLOW}B) CSV Metadata:{Style.RESET_ALL} Scans 'Title' + 'Abstract' columns in CSV files.")
+    print("      (Useful for screening Semantic Scholar results before downloading PDFs).")
 
     # --- 2. RANKING LOGIC ---
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Ranking Logic (How Score is Calculated):{Style.RESET_ALL}")
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Relevance Scoring System:{Style.RESET_ALL}")
     print(f"   {Fore.GREEN}HIGH Relevance{Style.RESET_ALL}   : All terms present + {Fore.YELLOW}Close Proximity{Style.RESET_ALL}.")
     print("                      (Terms appear within a 50-word window).")
     print(f"   {Fore.YELLOW}MEDIUM Relevance{Style.RESET_ALL} : All terms present, but scattered.")
     print(f"   {Fore.WHITE}LOW Relevance{Style.RESET_ALL}    : Partial match (some terms missing).")
 
-    # --- 3. IMPLICIT AND ---
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. Implicit Logic:{Style.RESET_ALL}")
-    print("   If you type words without boolean operators, they are treated as AND.")
-    print(f"   Query: {Style.DIM}*materials 2d*{Style.RESET_ALL} -> Parsed as: {Style.DIM}materials AND 2d{Style.RESET_ALL}")
+    # --- 3. OUTPUT ---
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. Output Organization:{Style.RESET_ALL}")
+    print("   - For PDFs: Files are copied into folders `High/Medium/Low_Relevance`.")
+    print("   - For CSVs: New CSV files are created in `content_filtered_csv/`.")
 
     # --- 4. EXAMPLE ---
     print(f"\n{Fore.WHITE}{Style.BRIGHT}4. Practical Example:{Style.RESET_ALL}")
     print("   Target: Find papers specifically about 'DFT' using 'VASP'.")
     print(f"   {Fore.YELLOW}Query:{Style.RESET_ALL}  *DFT* AND *VASP*")
-    print(f"   - If 'DFT' and 'VASP' appear in the same paragraph -> {Fore.GREEN}HIGH{Style.RESET_ALL}")
-    print(f"   - If 'DFT' is on page 1 and 'VASP' on page 10      -> {Fore.YELLOW}MEDIUM{Style.RESET_ALL}")
+    print(f"   - If 'DFT' and 'VASP' appear in the same abstract -> {Fore.GREEN}HIGH{Style.RESET_ALL}")
 
     print(f"\n{Fore.MAGENTA}Press Enter to return...{Style.RESET_ALL}")
     input()
 
 def show_analysis_help():
     """
-    Renders documentation for the Statistical Analyzer module.
-    Explains data consolidation and deduplication strategies.
+    Renders documentation for the Statistical Analyzer & Visualization.
     """
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Statistical Analyzer: Guide ==={Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}--------- Statistical Analyzer & Graphs --------{Style.RESET_ALL}")
 
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Purpose:{Style.RESET_ALL}")
-    print("   The Analyzer processes raw CSV results to generate insights.")
-    print("   It is essential for cleaning up data after multiple search batches.")
+    print("   The Analyzer processes raw or filtered CSVs to generate insights.")
+    print("   It consolidates data, removes duplicates, and generates visualizations.")
 
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Deduplication Logic:{Style.RESET_ALL}")
-    print("   Since queries often overlap (e.g., 'AI AND Drug' vs 'ML AND Drug'),")
-    print("   duplicate papers are common.")
-    print(f"   - The analyzer creates a unique key based on the {Style.BRIGHT}Normalized Title{Style.RESET_ALL}.")
-    print("   - Case differences and extra spaces are ignored.")
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Data Visualization (Matplotlib):{Style.RESET_ALL}")
+    print("   The tool automatically generates PNG images in the `log/` folder:")
+    print(f"   - {Fore.GREEN}timeline_plot.png{Style.RESET_ALL}       : Bar chart of publications per year.")
+    print(f"   - {Fore.GREEN}top_authors_plot.png{Style.RESET_ALL}    : Horizontal bars of most prolific authors.")
+    print(f"   - {Fore.GREEN}citation_histogram.png{Style.RESET_ALL}  : Distribution of citation counts.")
+
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. Important Limitations:{Style.RESET_ALL}")
+    print(f"   {Fore.RED}⚠️  ArXiv Citation Data:{Style.RESET_ALL}")
+    print("   The ArXiv API does NOT provide citation counts.")
+    print("   - Citation graphs will be empty/zero for pure ArXiv searches.")
+    print("   - Use Semantic Scholar (Option 2) for citation metrics.")
+
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}4. Deduplication Logic:{Style.RESET_ALL}")
+    print(f"   - Uses {Style.BRIGHT}Normalized Title{Style.RESET_ALL} as a unique key.")
     print(f"   - {Style.DIM}'Graphyne Properties'{Style.RESET_ALL} == {Style.DIM}'graphyne properties'{Style.RESET_ALL}")
-
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. Output Structure:{Style.RESET_ALL}")
-    print(f"   Results are saved in the {Style.BRIGHT}log/{Style.RESET_ALL} directory:")
-    print(f"   - {Fore.GREEN}top_papers.csv{Style.RESET_ALL}       : Unified list of unique articles.")
-    print(f"   - {Fore.GREEN}prolific_authors.csv{Style.RESET_ALL} : Frequency count of authors.")
-    print(f"   - {Fore.GREEN}productive_years.csv{Style.RESET_ALL} : Publication timeline analysis.")
 
     print(f"\n{Fore.MAGENTA}Press Enter to return...{Style.RESET_ALL}")
     input()
 
 def show_author_search_help():
     """Renders documentation for Google Scholar Author Search."""
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Author Search: Google Scholar Guide ==={Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}------ Author Search: Google Scholar Guide ------{Style.RESET_ALL}")
     
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Strategy:{Style.RESET_ALL}")
     print("   Direct name searching on Google Scholar is prone to IP blocks.")
@@ -121,9 +125,30 @@ def show_author_search_help():
     print(f"\n{Fore.MAGENTA}Press Enter to return...{Style.RESET_ALL}")
     input()
 
+def show_bibtex_help():
+    """Renders documentation for the BibTeX Generator."""
+    print(f"\n{Fore.CYAN}----------- BibTeX Generator: Guide -----------{Style.RESET_ALL}")
+    
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Purpose:{Style.RESET_ALL}")
+    print("   Converts CSV results into a `.bib` file ready for LaTeX/Overleaf.")
+    print("   It creates citation keys automatically (e.g., `Silva2024DFT`).")
+
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Workflow:{Style.RESET_ALL}")
+    print("   You can choose to generate references from:")
+    print(f"   - {Fore.YELLOW}RAW Data:{Style.RESET_ALL} All results found in `results/` and `arxiv_results/`.")
+    print(f"   - {Fore.GREEN}FILTERED Data:{Style.RESET_ALL} Only papers approved by AI or Content Filter.")
+
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}3. Features:{Style.RESET_ALL}")
+    print("   - **Smart Detection**: Finds 'Title', 'Year', 'Authors' even with bad formatting.")
+    print("   - **Venue Support**: Extracts Journal/Conference names from Semantic Scholar.")
+    print("   - **LaTeX Sanitization**: Escapes special characters like `&`, `%`, `_`.")
+
+    print(f"\n{Fore.MAGENTA}Press Enter to return...{Style.RESET_ALL}")
+    input()
+
 def show_llama_filter_help():
     """Renders documentation for the LLM-based Semantic Filter."""
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}=== AI Filter: Features & Best Practices ==={Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}----- AI Filter: Features & Best Practices -----{Style.RESET_ALL}")
     
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Concept:{Style.RESET_ALL}")
     print("   Uses a quantized local LLM (Qwen/TinyLlama) to perform semantic")
@@ -140,7 +165,7 @@ def show_llama_filter_help():
 
 def show_llama_risks():
     """Renders disclaimer regarding AI limitations."""
-    print(f"\n{Fore.RED}{Style.BRIGHT}=== AI Filter: Risks & Limitations ==={Style.RESET_ALL}")
+    print(f"\n{Fore.RED}--------- AI Filter: Risks & Limitations ---------{Style.RESET_ALL}")
     
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Hallucinations:{Style.RESET_ALL}")
     print(f"   {Fore.YELLOW}The AI provides probabilistic classifications, not facts.{Style.RESET_ALL}")
@@ -158,15 +183,16 @@ def show_llama_risks():
 def show_help_menu():
     """Main routing function for the Help System."""
     while True:
-        print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Main Help Menu ===")
+        print(f"\n{Fore.CYAN}---------------- Main Help Menu ----------------\n")
         print(f"{Fore.WHITE}Select a topic for more information:{Style.RESET_ALL}")
-        print(f"{Fore.GREEN}(1) AutoSearch Guide (Queries & APIs)")
-        print(f"{Fore.GREEN}(2) Author Search Guide (Google Scholar)")
-        print(f"{Fore.GREEN}(3) AI Filter Guide (Semantic Analysis)")
-        print(f"{Fore.GREEN}(4) Local PDF Content Filter Guide (Ranking)")
-        print(f"{Fore.GREEN}(5) Statistical Analyzer Guide (Deduplication)")
-        print(f"{Fore.RED}(6) AI Risks & Limitations")
-        print(f"{Fore.YELLOW}(0) Exit Help Menu")
+        print(f"{Fore.GREEN}1. AutoSearch Guide (Queries & APIs)")
+        print(f"{Fore.GREEN}2. Author Search Guide (Google Scholar)")
+        print(f"{Fore.GREEN}3. AI Filter Guide (Semantic Analysis)")
+        print(f"{Fore.GREEN}4. Content Filter Guide (PDF & CSV Ranking)")
+        print(f"{Fore.GREEN}5. Stats & Graphs Guide (Analysis)")
+        print(f"{Fore.GREEN}6. BibTeX Generator Guide (LaTeX)")
+        print(f"{Fore.RED}7. AI Risks & Limitations")
+        print(f"{Fore.YELLOW}0. Exit Help Menu")
         
         choice = input(f"{Fore.WHITE}> {Style.RESET_ALL}")
         
@@ -175,9 +201,10 @@ def show_help_menu():
         elif choice == '3': show_llama_filter_help()
         elif choice == '4': show_content_filter_help() 
         elif choice == '5': show_analysis_help()
-        elif choice == '6': show_llama_risks()
+        elif choice == '6': show_bibtex_help()
+        elif choice == '7': show_llama_risks()
         elif choice == '0':
             print(f"{Fore.YELLOW}Exiting help menu...{Style.RESET_ALL}")
             break
         else:
-            print(f"{Fore.RED}Invalid option. Please choose a number from 0 to 6.{Style.RESET_ALL}")
+            print(f"{Fore.RED}Invalid option. Please choose a number from 0 to 7.{Style.RESET_ALL}")

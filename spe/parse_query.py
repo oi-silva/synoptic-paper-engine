@@ -1,3 +1,5 @@
+# parse_query.py
+
 import re
 from itertools import product
 from colorama import init, Fore, Style
@@ -24,16 +26,23 @@ def parse_query(query: str):
         op = operator_stack.pop()
         
         if op == "NOT":
-            if not value_stack:
-                raise ValueError("Invalid expression: NOT without a following term.")
-            right_term = ensure_list(value_stack.pop())
-            
-            # TODO: Implement full unary NOT logic.
-            # Currently skipped to avoid complexity. The current implementation 
-            # treats NOT as binary (A NOT B) or effectively ignores it here 
-            # because the logic is ambiguous without a preceding term.
-            # Real implementation should return: ["NOT", right_term]
-            pass 
+            if len(value_stack) < 2:
+                if not value_stack:
+                     raise ValueError("Invalid expression: NOT without a term.")
+                right_term = ensure_list(value_stack.pop())
+
+                negated = [f"NOT {t}" for t in right_term]
+                value_stack.append(negated)
+            else:
+                right_term = ensure_list(value_stack.pop())
+                left_term = ensure_list(value_stack.pop())
+                
+                combined = []
+                for l in left_term:
+                    for r in right_term:
+                        combined.append(f"{l} NOT {r}")
+                
+                value_stack.append(combined)
         
         elif op == "OR":
             if len(value_stack) < 2:

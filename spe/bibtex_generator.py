@@ -1,3 +1,5 @@
+# bibtex_generator.py
+
 import os
 import csv
 import re

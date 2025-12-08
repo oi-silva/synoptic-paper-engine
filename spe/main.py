@@ -1,9 +1,12 @@
+# main.py
+
 import requests
 import pypdf
 import time
 import csv
 import sys
 import os
+from tqdm import tqdm
 from colorama import init, Fore, Style
 import subprocess
 import importlib.util
@@ -26,20 +29,19 @@ APP_NAME = "Synoptic Paper Engine"
 USER_AGENT = "Synoptic-Paper-Engine/1.0"
 API_KEY = None  
 
-# --- ATUALIZAÇÃO AQUI: Adicionei 'venue' na lista de campos ---
 FIELDS = "title,authors,year,citationCount,url,abstract,venue"
 
 
 def display_banner():
     """Displays a welcome banner with the tool's name and description."""
     
-    banner_art = r"""
-                    ██████╗ ██████╗  ███████╗
-                    ██╔═══╝ ██╔══██╗ ██╔════╝
-                    ██████╗ ██████╔╝ ███████╗
-                    ╚═══██║ ██╔═══╝  ██╔════╝
-                    ██████║ ██║      ███████║
-                    ╚═════╝ ╚═╝      ╚══════╝
+    banner_art = rf"""
+                   ██████╗ ██████╗  ███████╗
+                   ██╔═══╝ ██╔══██╗ ██╔════╝
+                   ██████╗ ██████╔╝ ███████╗
+                   ╚═══██║ ██╔═══╝  ██╔════╝
+                   ██████║ ██║      ███████║
+                   ╚═════╝ ╚═╝ {Fore.LIGHTBLACK_EX}v0.2{Style.RESET_ALL}{Fore.CYAN} ╚══════╝
 """
     
     tool_name = "Synoptic Paper Engine\n"
@@ -54,7 +56,7 @@ def display_banner():
     max_banner_width = max(len(line) for line in banner_lines) if banner_lines else 80
 
     # Prints art and title in CYAN
-    print(f"{Fore.CYAN}{Style.BRIGHT}{banner_art}{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}{banner_art}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{Style.BRIGHT}{tool_name.center(max_banner_width)}{Style.RESET_ALL}")
     
     # Prints description in WHITE
@@ -100,7 +102,7 @@ def get_with_backoff(url, headers, max_retries=5):
             if response.status_code == 200:
                 return response
             elif response.status_code == 429:
-                print(f"{Fore.YELLOW}⚠️  Error 429: Too many requests. Retrying in {delay} seconds...")
+                #print(f"{Fore.YELLOW}⚠️  Error 429: Too many requests. Retrying in {delay} seconds...")
                 time.sleep(delay)
                 delay *= 2
             else:
@@ -154,11 +156,7 @@ def run_arxiv_interface():
     except ValueError:
         max_year = None
     
-    try:
-        min_cit_input = input(f"{Fore.MAGENTA}Minimum Citations {Style.DIM}(default = 0):{Style.RESET_ALL} ")
-        min_citations = int(min_cit_input) if min_cit_input.strip() else 0
-    except ValueError:
-        min_citations = 0
+    min_citations = 0
 
     print(f"\n{Fore.LIGHTBLUE_EX}--- Search Summary ---")
     print(f"{Fore.LIGHTBLUE_EX}🔧 Query expanded into {len(queries)} searches.")
@@ -256,50 +254,59 @@ def run_bibliographic_search():
         writer.writerow(["Query", "Total Articles", "Filtered Articles"])
 
     for query in queries:
-        print(f"\n{Fore.BLUE}🔎 Searching for articles on: {Style.BRIGHT}{query}{Style.RESET_ALL}")
+        print(f"\n{Fore.BLUE}🔎 Searching: {Style.BRIGHT}{query}{Style.RESET_ALL}")
         total_paper = 0
         filtered_papers = 0
-        for batch in range(max_batches):
-            offset = batch * batch_size
-            url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={query}&limit={batch_size}&offset={offset}&fields={FIELDS}"
-            response = get_with_backoff(url, headers)
-            if response is None: break
+        
+        # --- PROGRESS BAR IMPLEMENTATION ---
+        with tqdm(range(max_batches), desc="Fetching Batches", unit="batch", colour="green") as pbar:
+            for batch in pbar:
+                offset = batch * batch_size
+                url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={query}&limit={batch_size}&offset={offset}&fields={FIELDS}"
+                response = get_with_backoff(url, headers)
+                if response is None: break
 
-            data = response.json().get("data", [])
-            total_paper += len(data)
-            if not data:
-                print(f"{Fore.YELLOW}📭 No more articles found for this query.")
-                break
+                data = response.json().get("data", [])
+                total_paper += len(data)
+                
+                # If no data returned, stop early
+                if not data:
+                    pbar.write(f"{Fore.YELLOW}📭 No more articles found for this query.")
+                    break
 
-            filtered = [p for p in data if (p.get("citationCount", 0) >= min_citations and (min_year is None or p.get("year", 0) >= min_year) and (max_year is None or p.get("year", 0) <= max_year))]
-            filtered_papers += len(filtered)
+                filtered = [p for p in data if (p.get("citationCount", 0) >= min_citations and (min_year is None or p.get("year", 0) >= min_year) and (max_year is None or p.get("year", 0) <= max_year))]
+                filtered_papers += len(filtered)
 
-            if filtered:
-                sanitized_query = "".join(c for c in query if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                output_file = os.path.join(output_folder, f"{sanitized_query}-{batch + 1}.csv")
+                if filtered:
+                    sanitized_query = "".join(c for c in query if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                    output_file = os.path.join(output_folder, f"{sanitized_query}-{batch + 1}.csv")
 
-                with open(output_file, mode='w', newline='', encoding='utf-8') as file:
-                    writer = csv.writer(file)
-                    # --- ATUALIZAÇÃO AQUI: Adicionei 'Venue' no cabeçalho do CSV ---
-                    writer.writerow(["Query", "Title", "Year", "Citations", "Authors", "Venue", "URL", "Abstract"])
-                    for paper in filtered:
-                        authors = "; ".join([a["name"] for a in paper.get("authors", [])])
-                        
-                        # --- ATUALIZAÇÃO AQUI: Adicionei a extração do campo 'venue' ---
-                        writer.writerow([
-                            query, 
-                            paper.get("title", ""), 
-                            paper.get("year", ""), 
-                            paper.get("citationCount", 0), 
-                            authors, 
-                            paper.get("venue", ""), # Extrai o Journal/Venue
-                            paper.get("url", ""), 
-                            paper.get("abstract", "")
-                        ])
-                print(f"{Fore.GREEN}{len(filtered)} articles saved, batch {batch + 1} -> {output_file}")
-            else:
-                print(f"{Fore.YELLOW}No articles in batch {batch + 1} met the filter criteria.")
-            time.sleep(3)
+                    with open(output_file, mode='w', newline='', encoding='utf-8') as file:
+                        writer = csv.writer(file)
+                        # CSV Header including Venue
+                        writer.writerow(["Query", "Title", "Year", "Citations", "Authors", "Venue", "URL", "Abstract"])
+                        for paper in filtered:
+                            authors = "; ".join([a["name"] for a in paper.get("authors", [])])
+                            
+                            # Row data including Venue extraction
+                            writer.writerow([
+                                query, 
+                                paper.get("title", ""), 
+                                paper.get("year", ""), 
+                                paper.get("citationCount", 0), 
+                                authors, 
+                                paper.get("venue", ""), 
+                                paper.get("url", ""), 
+                                paper.get("abstract", "")
+                            ])
+                    
+                    # Update progress bar description with stats
+                    pbar.set_postfix(saved=filtered_papers)
+                else:
+                    # pbar.write(f"{Fore.YELLOW}⚠️ Batch {batch + 1} empty (filtered out).")
+                    pass
+                
+                time.sleep(3) # Gentle delay for API
 
         with open(output_statistics, mode='a', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
@@ -352,7 +359,7 @@ def main_menu():
         # Clear the terminal for a cleaner menu view
         os.system('cls' if os.name == 'nt' else 'clear')
         display_banner()
-        print(f"\n{Fore.CYAN}--- Main Menu ---")
+        print(f"\n{Fore.CYAN}------------------ Main Menu ------------------\n")
         print(f"{Fore.YELLOW}1. Run arXiv Search (Full Text + PDF)")
         print(f"{Fore.YELLOW}2. Run Semantic Scholar Search (Metadata Only)")
         print(f"{Fore.YELLOW}3. Search by Author (Google Scholar)")
@@ -493,7 +500,7 @@ def main_menu():
 
         # --- 0. EXIT ---
         elif choice == "0":
-            print(f"{Fore.BLUE}Exiting. Goodbye!{Style.RESET_ALL}")
+            print(f"{Fore.BLUE}Exiting. Goodbye!{Style.RESET_ALL}\n")
             sys.exit()
         else:
             print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 0 to 9.")

@@ -1,10 +1,12 @@
 # pyarxiv.py
+
 import arxiv
 import pandas as pd
 import os
 import requests
 import re
 from colorama import Fore, Style
+from tqdm import tqdm  # Progress bar support
 
 def sanitize_filename(filename):
     """Clean string for filename usage."""
@@ -85,26 +87,35 @@ class ArxivTool:
         
         final_data = []
         
-        for entry_id, data in all_results.items():
-            safe_title = sanitize_filename(data['title'])
-            pdf_filename = f"{safe_title}.pdf"
-            pdf_path = os.path.join(pdf_dir, pdf_filename)
-            
-            data['local_path'] = pdf_path
-            
-            # Download PDF
-            try:
-                response = requests.get(data['pdf_url'], timeout=30)
-                if response.status_code == 200:
-                    with open(pdf_path, 'wb') as f:
-                        f.write(response.content)
-                    print(f"{Fore.GREEN}[OK] Downloaded: {Fore.WHITE}{safe_title[:40]}...")
-                else:
-                    print(f"{Fore.RED}[ERR] Failed to download: {data['arxiv_id']}")
-            except Exception as e:
-                print(f"{Fore.RED}[EXC] Exception downloading {data['arxiv_id']}: {e}")
-            
-            final_data.append(data)
+        # --- UPDATE: PROGRESS BAR ---
+        # Using tqdm to wrap the loop. 'unit' defines the item label (e.g., 5/10 pdfs)
+        # Internal print statements removed to keep the terminal clean.
+        with tqdm(total=unique_count, desc="Downloading PDFs", unit="pdf", colour="green") as pbar:
+            for entry_id, data in all_results.items():
+                safe_title = sanitize_filename(data['title'])
+                pdf_filename = f"{safe_title}.pdf"
+                pdf_path = os.path.join(pdf_dir, pdf_filename)
+                
+                data['local_path'] = pdf_path
+                
+                try:
+                    response = requests.get(data['pdf_url'], timeout=30)
+                    if response.status_code == 200:
+                        with open(pdf_path, 'wb') as f:
+                            f.write(response.content)
+                    else:
+                        # Silent failure (process continues, file is simply not saved)
+                        pass
+                except Exception:
+                    # Silent exception (network error, timeout, etc.)
+                    pass
+                
+                # Add metadata to final list regardless of download success
+                # (Ensures the link exists in CSV for manual retrieval if needed)
+                final_data.append(data)
+                
+                # Update progress bar
+                pbar.update(1)
 
         # 3. Save CSV
         df = pd.DataFrame(final_data)

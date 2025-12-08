@@ -1,3 +1,5 @@
+# pdf_content_filter.py
+
 import os
 import re
 import shutil
