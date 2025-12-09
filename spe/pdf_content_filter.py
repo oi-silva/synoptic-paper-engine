@@ -3,12 +3,16 @@ import re
 import shutil
 import pypdf
 import csv
+import logging
 from colorama import Fore, Style, init
 from tqdm import tqdm
 from . import parse_query as pq
 from . import cross_validator as cv
 
 init(autoreset=True)
+
+logger = logging.getLogger("pypdf")
+logger.setLevel(logging.ERROR)
 
 # =================CONFIGURATION=================
 DEBUG_MODE = False  
