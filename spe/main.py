@@ -40,8 +40,8 @@ def display_banner():
                    ██╔═══╝ ██╔══██╗ ██╔════╝
                    ██████╗ ██████╔╝ ██████╗
                    ╚═══██║ ██╔═══╝  ██╔═══╝
-                   ██████║ ██║      ███████║
-                   ╚═════╝ ╚═╝ {Fore.LIGHTBLACK_EX}v0.2{Style.RESET_ALL}{Fore.CYAN} ╚══════╝
+                   ██████║ ██║      ███████╗
+                   ╚═════╝ ╚═╝ {Fore.LIGHTBLACK_EX}v0.2{Style.RESET_ALL}{Fore.CYAN}{Style.BRIGHT} ╚══════╝
 """
     
     tool_name = "Synoptic Paper Engine\n"
@@ -364,7 +364,7 @@ def main_menu():
         print(f"{Fore.YELLOW}2. Run Semantic Scholar Search (Metadata Only)")
         print(f"{Fore.YELLOW}3. Search by Author (Google Scholar)")
         print(f"{Fore.YELLOW}4. Filter Papers with AI (Llama)")
-        print(f"{Fore.YELLOW}5. Filter Content (PDFs or CSVs)") 
+        print(f"{Fore.YELLOW}5. Filter Content by Regex (PDFs or CSVs)") 
         print(f"{Fore.YELLOW}6. Analyze Results (Graphs & Stats)")
         print(f"{Fore.YELLOW}7. Generate BibTeX File (LaTeX)")
         print(f"{Fore.YELLOW}8. Setup Local AI (Llama)")
