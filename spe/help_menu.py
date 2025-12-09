@@ -49,7 +49,7 @@ def show_content_filter_help():
     Renders documentation for the Content Filter (PDF & CSV).
     Details the scoring metrics and dual-mode operation.
     """
-    print(f"\n{Fore.CYAN}-------- Content Filter: PDF & CSV Guide --------{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}-------- Content Filter by Regex: PDF & CSV Guide --------{Style.RESET_ALL}")
     
     # --- 1. DUAL MODE ---
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Dual Mode Operation:{Style.RESET_ALL}")
@@ -136,7 +136,7 @@ def show_bibtex_help():
     print(f"\n{Fore.WHITE}{Style.BRIGHT}2. Workflow:{Style.RESET_ALL}")
     print("   You can choose to generate references from:")
     print(f"   - {Fore.YELLOW}RAW Data:{Style.RESET_ALL} All results found in `results/` and `arxiv_results/`.")
-    print(f"   - {Fore.GREEN}FILTERED Data:{Style.RESET_ALL} Only papers approved by AI or Content Filter.")
+    print(f"   - {Fore.GREEN}FILTERED Data:{Style.RESET_ALL} Only papers approved by AI or Content Filter by Regex.")
 
     print(f"\n{Fore.WHITE}{Style.BRIGHT}3. Features:{Style.RESET_ALL}")
     print("   - **Smart Detection**: Finds 'Title', 'Year', 'Authors' even with bad formatting.")
@@ -188,7 +188,7 @@ def show_help_menu():
         print(f"{Fore.GREEN}1. AutoSearch Guide (Queries & APIs)")
         print(f"{Fore.GREEN}2. Author Search Guide (Google Scholar)")
         print(f"{Fore.GREEN}3. AI Filter Guide (Semantic Analysis)")
-        print(f"{Fore.GREEN}4. Content Filter Guide (PDF & CSV Ranking)")
+        print(f"{Fore.GREEN}4. Content Filter by Regex Guide (PDF & CSV Ranking)")
         print(f"{Fore.GREEN}5. Stats & Graphs Guide (Analysis)")
         print(f"{Fore.GREEN}6. BibTeX Generator Guide (LaTeX)")
         print(f"{Fore.RED}7. AI Risks & Limitations")
