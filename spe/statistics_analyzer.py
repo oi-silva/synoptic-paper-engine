@@ -94,11 +94,11 @@ def plot_year_distribution(year_counter, output_folder, title_suffix=""):
     bars = plt.bar(sorted_years, counts, color='skyblue', edgecolor='navy', alpha=0.7)
     
     # Add labels and title in English
-    plt.xlabel('Publication Year', fontsize=14)
-    plt.ylabel('Number of Articles', fontsize=14)
-    plt.title(f'Publication Trend: {title_suffix}', fontsize=16)
-    plt.xticks(rotation=45, fontsize=12)
-    plt.yticks(fontsize=12)
+    plt.xlabel('Publication Year', fontsize=16)
+    plt.ylabel('Number of Articles', fontsize=16)
+    plt.title(f'Publication Trend', fontsize=16)
+    plt.xticks(rotation=45, fontsize=14)
+    plt.yticks(fontsize=14)
     plt.grid(axis='y', linestyle='--', alpha=0.5)
 
     # Annotate bars with values
@@ -106,7 +106,7 @@ def plot_year_distribution(year_counter, output_folder, title_suffix=""):
         height = bar.get_height()
         plt.text(bar.get_x() + bar.get_width()/2., height,
                  f'{height}',
-                 ha='center', va='bottom', fontsize=9)
+                 ha='center', va='bottom', fontsize=12)
 
     plt.tight_layout()
     
@@ -150,7 +150,7 @@ def plot_top_authors(author_counter, output_folder, top_n=10):
         width = bar.get_width()
         plt.text(width, bar.get_y() + bar.get_height()/2.,
                  f' {width}',
-                 va='center', fontsize=10)
+                 va='center', fontsize=12)
 
     plt.tight_layout()
     
@@ -171,7 +171,7 @@ def plot_citation_distribution(papers_list, output_folder):
     # Extract citations (exclude 0 if you want, or keep them to show uncited papers)
     citations = [p['citations'] for p in papers_list if p.get('citations') is not None]
     
-    if not citations:
+    if all(x == 0 for x in citations):
         return
 
     plt.figure(figsize=(10, 6))
@@ -179,8 +179,8 @@ def plot_citation_distribution(papers_list, output_folder):
     # Histogram
     plt.hist(citations, bins=30, color='salmon', edgecolor='black', alpha=0.7)
     
-    plt.xlabel('Number of Citations', fontsize=14)
-    plt.ylabel('Frequency (Number of Papers)', fontsize=14)
+    plt.xlabel('Number of Citations', fontsize=16)
+    plt.ylabel('Frequency (Number of Papers)', fontsize=16)
     plt.title('Citation Distribution', fontsize=16)
     plt.grid(axis='y', linestyle='--', alpha=0.5)
     plt.xticks(fontsize=14)
@@ -312,7 +312,6 @@ def analyze_general_csv_folder(folder_path):
     if HAS_MATPLOTLIB:
         plot_year_distribution(year_counts, log_directory, title_suffix=folder_name)
         plot_top_authors(author_counts, log_directory)
-        print(all_papers)
         plot_citation_distribution(all_papers, log_directory)
     else:
         print(f"{Fore.YELLOW}⚠️ Matplotlib not found. Charts will not be generated.")

@@ -121,8 +121,6 @@ def format_publication_bibtex(pub: dict) -> str:
         entry += f"  journal = {{{journal}}},\n"
     if url:
         entry += f"  url = {{{url}}},\n"
-    if abstract:
-        entry += f"  abstract = {{{abstract}}},\n"
     entry += "}\n"
     
     return entry

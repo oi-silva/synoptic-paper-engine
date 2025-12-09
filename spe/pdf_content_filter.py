@@ -1,12 +1,12 @@
-# pdf_content_filter.py
-
 import os
 import re
 import shutil
 import pypdf
 import csv
 from colorama import Fore, Style, init
+from tqdm import tqdm
 from . import parse_query as pq
+from . import cross_validator as cv
 
 init(autoreset=True)
 
@@ -153,6 +153,16 @@ def run_csv_content_filter(input_folder, user_query_string):
 
     print(f"\n{Fore.CYAN}--- CSV Content Filter (Abstract Analysis) ---{Style.RESET_ALL}")
     
+    # Pre-count total rows for progress bar
+    print(f"{Fore.YELLOW}📊 Calculating workload...{Style.RESET_ALL}")
+    total_rows = 0
+    for filename in csv_files:
+        try:
+            with open(os.path.join(input_folder, filename), 'r', encoding='utf-8') as f:
+                # Count lines minus header
+                total_rows += sum(1 for _ in f) - 1
+        except: pass
+
     stats = {"High": 0, "Medium": 0, "Low": 0, "Rejected": 0}
     
     # Prepare output files
@@ -165,72 +175,90 @@ def run_csv_content_filter(input_folder, user_query_string):
     writers = {}
     headers_written = {"High": False, "Medium": False, "Low": False}
 
-    for filename in csv_files:
-        filepath = os.path.join(input_folder, filename)
-        
-        with open(filepath, 'r', encoding='utf-8') as f:
-            try:
-                reader = csv.DictReader(f)
-                fieldnames = reader.fieldnames
-                
-                out_fieldnames = fieldnames + ["Relevance_Score"]
-
-                for row in reader:
-                    title = row.get("Title", row.get("title", ""))
-                    abstract = row.get("Abstract", row.get("abstract", row.get("summary", "")))
+    # Initialize Progress Bar
+    with tqdm(total=total_rows, desc="Filtering Content", unit="paper", colour="green") as pbar:
+        for filename in csv_files:
+            filepath = os.path.join(input_folder, filename)
+            
+            with open(filepath, 'r', encoding='utf-8') as f:
+                try:
+                    reader = csv.DictReader(f)
+                    fieldnames = reader.fieldnames
                     
-                    full_text = f"{title} . {abstract}"
-                    
-                    if len(full_text) < 10:
-                        continue
+                    if not fieldnames: continue
 
-                    max_score = 0
-                    for scenario in expanded_queries:
-                        score = calculate_relevance_score(full_text, scenario)
-                        if score > max_score:
-                            max_score = score
+                    out_fieldnames = fieldnames + ["Relevance_Score"]
 
-                    category = "Rejected"
-                    if max_score >= SCORE_HIGH_THRESHOLD:
-                        category = "High"
-                    elif max_score >= SCORE_MEDIUM_THRESHOLD:
-                        category = "Medium"
-                    elif max_score > 0:
-                        category = "Low"
-
-                    if category != "Rejected":
-                        row["Relevance_Score"] = max_score
+                    for row in reader:
+                        title = row.get("Title", row.get("title", ""))
+                        abstract = row.get("Abstract", row.get("abstract", row.get("summary", "")))
                         
-                        if not headers_written[category]:
-                            writers[category] = csv.DictWriter(out_files[category], fieldnames=out_fieldnames)
-                            writers[category].writeheader()
-                            headers_written[category] = True
+                        full_text = f"{title} . {abstract}"
                         
-                        writers[category].writerow(row)
-                        stats[category] += 1
-                        
-                        if category == "High":
-                            print(f"{Fore.GREEN}✅ HIGH: {title[:40]}... (Score: {max_score})")
-                    else:
-                        stats["Rejected"] += 1
+                        if len(full_text) < 10:
+                            stats["Rejected"] += 1
+                            pbar.update(1)
+                            continue
 
-            except Exception as e:
-                print(f"{Fore.RED}Error reading {filename}: {e}")
+                        max_score = 0
+                        for scenario in expanded_queries:
+                            score = calculate_relevance_score(full_text, scenario)
+                            if score > max_score:
+                                max_score = score
+
+                        category = "Rejected"
+                        if max_score >= SCORE_HIGH_THRESHOLD:
+                            category = "High"
+                        elif max_score >= SCORE_MEDIUM_THRESHOLD:
+                            category = "Medium"
+                        elif max_score > 0:
+                            category = "Low"
+
+                        if category != "Rejected":
+                            row["Relevance_Score"] = max_score
+                            
+                            if not headers_written[category]:
+                                writers[category] = csv.DictWriter(out_files[category], fieldnames=out_fieldnames)
+                                writers[category].writeheader()
+                                headers_written[category] = True
+                            
+                            writers[category].writerow(row)
+                            stats[category] += 1
+                        else:
+                            stats["Rejected"] += 1
+                        
+                        # Update progress & stats
+                        pbar.update(1)
+                        pbar.set_postfix(High=stats['High'], Med=stats['Medium'])
+
+                except Exception as e:
+                    pbar.write(f"{Fore.RED}Error reading {filename}: {e}")
 
     for f in out_files.values():
         f.close()
 
+    # Cleanup empty files
     for cat, count in stats.items():
         if cat != "Rejected" and count == 0:
-            os.remove(os.path.join(base_output, f"{cat}_Relevance.csv"))
+            file_to_remove = os.path.join(base_output, f"{cat}_Relevance.csv")
+            if os.path.exists(file_to_remove):
+                os.remove(file_to_remove)
 
     display_stats(stats)
     print(f"\n{Fore.CYAN}Results saved in: {base_output}{Style.RESET_ALL}")
 
+    # --- CROSS VALIDATION STEP ---
+    cv.save_metadata(base_output, input_folder, filter_type="REGEX")
+    cv.run_comparison(base_output, current_filter_type="REGEX")
+
 def run_content_filter(input_folder, user_query_string):
     """
     Controller function for PDFs.
+    Now generates both Folders (with copies) AND CSV logs.
     """
+    # Save the original path for the Cross-Validator
+    original_input_folder = input_folder
+
     try:
         expanded_queries = pq.parse_query(user_query_string)
     except Exception as e:
@@ -260,36 +288,81 @@ def run_content_filter(input_folder, user_query_string):
 
     stats = {"High": 0, "Medium": 0, "Low": 0, "Rejected": 0}
 
-    for i, filename in enumerate(pdf_files):
-        pdf_path = os.path.join(input_folder, filename)
-        full_text = extract_text_from_pdf(pdf_path)
-        
-        if not full_text or len(full_text) < 10:
-            stats["Rejected"] += 1
-            continue
+    # --- CSV WRITERS SETUP (NEW) ---
+    out_files = {
+        "High": open(os.path.join(base_output, "High_Relevance.csv"), 'w', newline='', encoding='utf-8'),
+        "Medium": open(os.path.join(base_output, "Medium_Relevance.csv"), 'w', newline='', encoding='utf-8'),
+        "Low": open(os.path.join(base_output, "Low_Relevance.csv"), 'w', newline='', encoding='utf-8')
+    }
+    writers = {}
+    headers_written = {"High": False, "Medium": False, "Low": False}
+    # We map 'Filename' to 'Title' so CrossValidator works automatically
+    csv_fieldnames = ["Title", "Relevance_Score", "Original_Path"] 
 
-        max_score = 0
-        for scenario in expanded_queries:
-            score = calculate_relevance_score(full_text, scenario, filename)
-            if score > max_score:
-                max_score = score
+    # --- PROGRESS BAR ---
+    with tqdm(total=len(pdf_files), desc="Scanning PDFs", unit="pdf", colour="green") as pbar:
+        for i, filename in enumerate(pdf_files):
+            pdf_path = os.path.join(input_folder, filename)
+            full_text = extract_text_from_pdf(pdf_path)
+            
+            if not full_text or len(full_text) < 10:
+                stats["Rejected"] += 1
+                pbar.update(1)
+                continue
 
-        category = "Rejected"
-        color = Fore.WHITE
-        if max_score >= SCORE_HIGH_THRESHOLD:
-            category = "High"
-            color = Fore.GREEN
-        elif max_score >= SCORE_MEDIUM_THRESHOLD:
-            category = "Medium"
-            color = Fore.YELLOW
-        elif max_score > 0:
-            category = "Low"
-        
-        if category != "Rejected":
-            shutil.copy2(pdf_path, os.path.join(dirs[category], filename))
-            stats[category] += 1
-            print(f"{color}✅ {category.upper()}: {filename[:30]}... (Score: {max_score}){Style.RESET_ALL}")
-        else:
-            stats["Rejected"] += 1
+            max_score = 0
+            for scenario in expanded_queries:
+                score = calculate_relevance_score(full_text, scenario, filename)
+                if score > max_score:
+                    max_score = score
+
+            category = "Rejected"
+            if max_score >= SCORE_HIGH_THRESHOLD:
+                category = "High"
+            elif max_score >= SCORE_MEDIUM_THRESHOLD:
+                category = "Medium"
+            elif max_score > 0:
+                category = "Low"
+            
+            if category != "Rejected":
+                # 1. Copy File
+                shutil.copy2(pdf_path, os.path.join(dirs[category], filename))
+                
+                # 2. Write to CSV (NEW)
+                if not headers_written[category]:
+                    writers[category] = csv.DictWriter(out_files[category], fieldnames=csv_fieldnames)
+                    writers[category].writeheader()
+                    headers_written[category] = True
+                
+                # We strip .pdf from Title for cleaner CSVs, though not strictly required
+                clean_title = os.path.splitext(filename)[0]
+                writers[category].writerow({
+                    "Title": clean_title,
+                    "Relevance_Score": max_score,
+                    "Original_Path": pdf_path
+                })
+
+                stats[category] += 1
+            else:
+                stats["Rejected"] += 1
+            
+            pbar.update(1)
+            pbar.set_postfix(High=stats['High'], Med=stats['Medium'])
+
+    # Close CSVs
+    for f in out_files.values():
+        f.close()
+
+    # Cleanup empty CSVs
+    for cat, count in stats.items():
+        if cat != "Rejected" and count == 0:
+            file_to_remove = os.path.join(base_output, f"{cat}_Relevance.csv")
+            if os.path.exists(file_to_remove):
+                os.remove(file_to_remove)
 
     display_stats(stats)
+    print(f"\n{Fore.CYAN}Results saved in: {base_output}{Style.RESET_ALL}")
+
+    # --- CROSS VALIDATION STEP ---
+    cv.save_metadata(base_output, original_input_folder, filter_type="REGEX")
+    cv.run_comparison(base_output, current_filter_type="REGEX")

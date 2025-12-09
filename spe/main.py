@@ -38,8 +38,8 @@ def display_banner():
     banner_art = rf"""
                    ██████╗ ██████╗  ███████╗
                    ██╔═══╝ ██╔══██╗ ██╔════╝
-                   ██████╗ ██████╔╝ ███████╗
-                   ╚═══██║ ██╔═══╝  ██╔════╝
+                   ██████╗ ██████╔╝ ██████╗
+                   ╚═══██║ ██╔═══╝  ██╔═══╝
                    ██████║ ██║      ███████║
                    ╚═════╝ ╚═╝ {Fore.LIGHTBLACK_EX}v0.2{Style.RESET_ALL}{Fore.CYAN} ╚══════╝
 """
@@ -127,8 +127,8 @@ def run_arxiv_interface():
             hm.show_autosearch_help()
             continue
         if not query_str.strip():
-            print(f"{Fore.RED}❌ Query cannot be empty.")
-            return 
+            input(f"{Fore.RED}❌ Query cannot be empty. Returning to main menu.")
+            return main_menu()
         break
 
     try:
@@ -189,8 +189,8 @@ def run_bibliographic_search():
             hm.show_autosearch_help()
             continue
         if not query_str.strip():
-            print(f"{Fore.RED}❌ Query cannot be empty. Returning to main menu.")
-            return 
+            input(f"{Fore.RED}❌ Query cannot be empty. Returning to main menu.")
+            return main_menu()
         break
 
     try:
@@ -440,7 +440,7 @@ def main_menu():
                 input(f"\n{Fore.GREEN}Press Enter to return...{Style.RESET_ALL}")
                 continue
                 
-            print(f"{Fore.CYAN}Select a folder to scan:{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}Select a folder to scan:{Style.RESET_ALL}")
             for i, f in enumerate(potential_folders):
                 print(f"{Fore.YELLOW}{i+1}. {f}")
                 
@@ -458,8 +458,18 @@ def main_menu():
                         print(f"{Fore.RED}❌ No PDFs or CSVs found in '{selected_folder}'.")
                         continue
 
-                    print(f"\n{Fore.WHITE}Enter filter query (e.g., '(*DFT* OR *VASP*) AND *Phonon*'):")
-                    user_query = input(f"{Fore.GREEN}> {Style.RESET_ALL}")
+                    #print(f"\n{Fore.WHITE}Enter filter query (e.g., '(*DFT* OR *VASP*) AND *Phonon*'):")
+                    while True:
+                        user_query = input(f"{Fore.YELLOW}Enter your query {Style.DIM}('help' for guidance):{Style.RESET_ALL}\n> ")
+                        if user_query.strip().lower() in ["help", "?"]:
+                            hm.show_autosearch_help()
+                            continue
+                        if not user_query.strip():
+                            input(f"{Fore.RED}❌ Query cannot be empty. Returning to main menu.")
+                            return main_menu()
+                        break
+                    
+                    #user_query = input(f"{Fore.GREEN}> {Style.RESET_ALL}")
                     
                     if user_query.strip():
                         if has_pdfs:

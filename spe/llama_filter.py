@@ -6,6 +6,8 @@ import sys
 from colorama import Fore, Style, init
 from tqdm import tqdm
 
+from . import cross_validator as cv
+
 # Attempt imports with specific error handling for llama-cpp-python
 try:
     from llama_cpp import Llama
@@ -180,3 +182,8 @@ def filter_with_llama(input_folder, output_folder):
     print(f"Processed: {total_processed}")
     print(f"Approved: {approved_count}")
     print(f"Results saved in: {output_csv}")
+
+    # --- CROSS VALIDATION STEP ---
+    cv.save_metadata(output_folder, input_folder, filter_type="AI")
+    
+    cv.run_comparison(output_folder, current_filter_type="AI")
