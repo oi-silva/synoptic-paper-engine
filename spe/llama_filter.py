@@ -62,7 +62,7 @@ def download_model_if_needed():
 
 def get_user_criteria():
     """Collects filter criteria via CLI."""
-    print(f"\n{Fore.CYAN}--- AI Filter Configuration ---{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}------------------- AI Filter Configuration --------------------{Style.RESET_ALL}")
     
     print(f"{Fore.WHITE}Define the persona for the AI (e.g., 'Senior Material Scientist'):")
     persona = input(f"{Fore.GREEN}> {Style.RESET_ALL}") or "Researcher"

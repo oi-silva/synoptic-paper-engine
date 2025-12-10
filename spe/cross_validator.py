@@ -1,3 +1,5 @@
+# cross_validator.py
+
 import os
 import json
 import hashlib
@@ -110,7 +112,7 @@ def run_comparison(current_output_folder, current_filter_type):
     Main function called by filters.
     Checks for a sibling result from the other method and compares.
     """
-    print(f"\n{Fore.CYAN}--- Cross-Validation Check ---{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}-------------------- Cross-Validation Check --------------------{Style.RESET_ALL}")
     
     # 1. Read current fingerprint
     try:

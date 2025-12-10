@@ -9,7 +9,7 @@ def show_autosearch_help():
     Renders the documentation for the Query Parser and Search Engine.
     Explains Boolean logic, Cartesian expansion, and API differences.
     """
-    print(f"\n{Fore.CYAN}------ AutoSearch: Query & Features Guide ------{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}-------------- AutoSearch: Query & Features Guide --------------{Style.RESET_ALL}")
     
     # --- 1. OVERVIEW ---
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. System Architecture:{Style.RESET_ALL}")
@@ -49,7 +49,7 @@ def show_content_filter_help():
     Renders documentation for the Content Filter (PDF & CSV).
     Details the scoring metrics and dual-mode operation.
     """
-    print(f"\n{Fore.CYAN}-------- Content Filter by Regex: PDF & CSV Guide --------{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}----------- Content Filter by Regex: PDF & CSV Guide -----------{Style.RESET_ALL}")
     
     # --- 1. DUAL MODE ---
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Dual Mode Operation:{Style.RESET_ALL}")
@@ -83,7 +83,7 @@ def show_analysis_help():
     """
     Renders documentation for the Statistical Analyzer & Visualization.
     """
-    print(f"\n{Fore.CYAN}--------- Statistical Analyzer & Graphs --------{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}---------------- Statistical Analyzer & Graphs -----------------{Style.RESET_ALL}")
 
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Purpose:{Style.RESET_ALL}")
     print("   The Analyzer processes raw or filtered CSVs to generate insights.")
@@ -110,7 +110,7 @@ def show_analysis_help():
 
 def show_author_search_help():
     """Renders documentation for Google Scholar Author Search."""
-    print(f"\n{Fore.CYAN}------ Author Search: Google Scholar Guide ------{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}------------- Author Search: Google Scholar Guide --------------{Style.RESET_ALL}")
     
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Strategy:{Style.RESET_ALL}")
     print("   Direct name searching on Google Scholar is prone to IP blocks.")
@@ -127,7 +127,7 @@ def show_author_search_help():
 
 def show_bibtex_help():
     """Renders documentation for the BibTeX Generator."""
-    print(f"\n{Fore.CYAN}----------- BibTeX Generator: Guide -----------{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}------------------- BibTeX Generator: Guide --------------------{Style.RESET_ALL}")
     
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Purpose:{Style.RESET_ALL}")
     print("   Converts CSV results into a `.bib` file ready for LaTeX/Overleaf.")
@@ -148,7 +148,7 @@ def show_bibtex_help():
 
 def show_llama_filter_help():
     """Renders documentation for the LLM-based Semantic Filter."""
-    print(f"\n{Fore.CYAN}----- AI Filter: Features & Best Practices -----{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}------------- AI Filter: Features & Best Practices -------------{Style.RESET_ALL}")
     
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Concept:{Style.RESET_ALL}")
     print("   Uses a quantized local LLM (Qwen/TinyLlama) to perform semantic")
@@ -165,7 +165,7 @@ def show_llama_filter_help():
 
 def show_llama_risks():
     """Renders disclaimer regarding AI limitations."""
-    print(f"\n{Fore.RED}--------- AI Filter: Risks & Limitations ---------{Style.RESET_ALL}")
+    print(f"\n{Fore.RED}---------------- AI Filter: Risks & Limitations ----------------{Style.RESET_ALL}")
     
     print(f"\n{Fore.WHITE}{Style.BRIGHT}1. Hallucinations:{Style.RESET_ALL}")
     print(f"   {Fore.YELLOW}The AI provides probabilistic classifications, not facts.{Style.RESET_ALL}")
@@ -183,7 +183,7 @@ def show_llama_risks():
 def show_help_menu():
     """Main routing function for the Help System."""
     while True:
-        print(f"\n{Fore.CYAN}---------------- Main Help Menu ----------------\n")
+        print(f"\n{Fore.CYAN}------------------------ Main Help Menu ------------------------\n")
         print(f"{Fore.WHITE}Select a topic for more information:{Style.RESET_ALL}")
         print(f"{Fore.GREEN}1. AutoSearch Guide (Queries & APIs)")
         print(f"{Fore.GREEN}2. Author Search Guide (Google Scholar)")
@@ -206,5 +206,7 @@ def show_help_menu():
         elif choice == '0':
             print(f"{Fore.YELLOW}Exiting help menu...{Style.RESET_ALL}")
             break
+        elif choice.strip() == '':
+            return
         else:
             print(f"{Fore.RED}Invalid option. Please choose a number from 0 to 7.{Style.RESET_ALL}")

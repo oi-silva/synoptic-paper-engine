@@ -41,7 +41,7 @@ class ArxivTool:
         all_results = {} 
 
         # 1. Search Phase
-        print(f"\n{Fore.CYAN}--- Starting ArXiv Search ---")
+        print(f"\n{Fore.CYAN}-------------------- Starting ArXiv Search ---------------------")
         for i, query_str in enumerate(query_list):
             print(f"{Fore.BLUE}Query [{i+1}/{len(query_list)}]: {Style.BRIGHT}{query_str}")
             
@@ -82,6 +82,8 @@ class ArxivTool:
         if unique_count == 0:
             print(f"\n{Fore.RED}❌ No articles found matching the criteria.")
             return
+        
+        print(f"\n{Fore.YELLOW}This might take a while... grab a coffee! ☕{Style.RESET_ALL}")
 
         print(f"\n{Fore.GREEN}Found {unique_count} unique articles. Starting downloads...")
         

@@ -161,7 +161,7 @@ def get_target_files(mode, selected_folder=None):
 
 def scan_and_generate_bibtex():
     """Main Menu for BibTeX Generator."""
-    print(f"\n{Fore.CYAN}--- BibTeX Generator Configuration ---{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}---------------- BibTeX Generator Configuration ----------------{Style.RESET_ALL}")
     print(f"{Fore.YELLOW}1. Generate from RAW Data (Everything found in 'results' & 'arxiv')")
     print(f"{Fore.YELLOW}2. Generate from FILTERED Data (Only AI/Content filtered papers)")
     
@@ -170,7 +170,6 @@ def scan_and_generate_bibtex():
     mode = "raw" if choice == "1" else "filtered" if choice == "2" else None
     
     if not mode:
-        print(f"{Fore.RED}Invalid choice.")
         return
 
     # List relevant folders to offer as options
@@ -188,7 +187,7 @@ def scan_and_generate_bibtex():
         print(f"{Fore.YELLOW}{i+1}. {d}")
 
     try:
-        sel = int(input(f"\n{Fore.CYAN}Enter number: {Style.RESET_ALL}"))
+        sel = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}"))
         selected_folder = None
         if sel > 0 and sel <= len(relevant_dirs):
             selected_folder = relevant_dirs[sel-1]

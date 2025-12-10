@@ -155,7 +155,7 @@ def run_csv_content_filter(input_folder, user_query_string):
         print(f"{Fore.RED}❌ No CSV files found in target directory.")
         return
 
-    print(f"\n{Fore.CYAN}--- CSV Content Filter (Abstract Analysis) ---{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}------------ CSV Content Filter (Abstract Analysis) ------------{Style.RESET_ALL}")
     
     # Pre-count total rows for progress bar
     print(f"{Fore.YELLOW}📊 Calculating workload...{Style.RESET_ALL}")
@@ -279,7 +279,7 @@ def run_content_filter(input_folder, user_query_string):
     for d in dirs.values():
         os.makedirs(d, exist_ok=True)
 
-    print(f"\n{Fore.CYAN}--- Ranked PDF Filter ---{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}---------------------- Ranked PDF Filter -----------------------{Style.RESET_ALL}")
     
     pdf_files = [f for f in os.listdir(input_folder) if f.lower().endswith('.pdf')]
     if not pdf_files and os.path.exists(os.path.join(input_folder, "pdfs")):

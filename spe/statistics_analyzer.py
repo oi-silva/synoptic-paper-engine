@@ -39,9 +39,9 @@ def get_output_filepath(directory, filename):
     return os.path.join(directory, filename)
 
 def display_header(title):
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}{'=' * 80}")
-    print(f"{Fore.CYAN}{Style.BRIGHT}{title.center(80)}")
-    print(f"{Fore.CYAN}{Style.BRIGHT}{'=' * 80}{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}{'=' * 64}")
+    print(f"{Fore.CYAN}{Style.BRIGHT}{title.center(64)}")
+    print(f"{Fore.CYAN}{Style.BRIGHT}{'=' * 64}{Style.RESET_ALL}")
 
 def display_top_items(title, counter, top_n=5):
     print(f"\n{Fore.YELLOW}--- {title} (Top {top_n}) ---{Style.RESET_ALL}")
@@ -97,7 +97,7 @@ def plot_year_distribution(year_counter, output_folder, title_suffix=""):
     plt.xlabel('Publication Year', fontsize=16)
     plt.ylabel('Number of Articles', fontsize=16)
     plt.title(f'Publication Trend', fontsize=16)
-    plt.xticks(rotation=45, fontsize=14)
+    plt.xticks(rotation=90, fontsize=14)
     plt.yticks(fontsize=14)
     plt.grid(axis='y', linestyle='--', alpha=0.5)
 
@@ -439,15 +439,12 @@ def run_analysis_interface():
     Allows user to choose between Raw Data or Filtered Data.
     Dynamically scans folders to populate the menu.
     """
-    print(f"\n{Fore.CYAN}--- Data Analysis Menu ---")
+    print(f"\n{Fore.CYAN}--------------- Analyze Results (Graphs & Stats) ---------------\n")
     print(f"{Fore.YELLOW}1. Analyze Raw Search Data (results / arxiv_results)")
     print(f"{Fore.YELLOW}2. Analyze Filtered Data (content_filtered_csv / llama_filtered)")
-    print(f"{Fore.YELLOW}0. Return")
     
     choice = input(f"\n{Fore.CYAN}Select data type: {Style.RESET_ALL}")
     
-    if choice == '0':
-        return
 
     potential_folders = []
 
@@ -495,7 +492,7 @@ def run_analysis_interface():
         print(f"{Fore.YELLOW}{i+1}. {folder}")
 
     try:
-        sel_idx = int(input(f"\n{Fore.CYAN}Choose a folder to analyze (Number): {Style.RESET_ALL}")) - 1
+        sel_idx = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}")) - 1
         if 0 <= sel_idx < len(potential_folders):
             selected_folder = potential_folders[sel_idx]
             

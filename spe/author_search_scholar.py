@@ -11,6 +11,8 @@ import traceback
 # Import specific exception for granular error handling (blocking detection)
 from scholarly._proxy_generator import MaxTriesExceededException
 
+from . import help_menu as hm
+
 init(autoreset=True)
 
 # ==============================================================================
@@ -155,37 +157,35 @@ def get_unique_folder(base_folder):
     return new_folder
 
 def run_author_search():
-    """Main execution flow: search author -> fetch pubs -> save CSV/TXT/BIB."""
+    """Main execution flow: search author -> filter stubs -> fetch pubs -> save CSV/TXT/BIB."""
     try:
-        setup_proxy()
+        
         selected_author = None
         
-        print(f"\n{Fore.CYAN}--- Author Search Method ---")
-        print(f"{Fore.YELLOW}1. Search by Author Name (less reliable)")
-        print(f"{Fore.YELLOW}2. Fetch by Author ID (more reliable)")
-        choice = input(f"\n{Fore.WHITE}Choose your method (1 or 2): {Style.RESET_ALL}")
+        print(f"\n{Fore.CYAN}--------------------- Author Search Method ---------------------")
         
-        if choice == '2':
-            author_id = input(f"\n{Fore.YELLOW}Enter the Google Scholar Author ID:{Style.RESET_ALL} ").strip()
-            if not author_id:
-                print(f"{Fore.RED}❌ Author ID cannot be empty.")
-                return
-            
-            print(f"\n{Fore.CYAN}🔎 Fetching author profile for ID: {author_id}...{Style.RESET_ALL}")
-            try:
-                selected_author = scholarly.search_author_id(author_id)
-                print(f"{Fore.GREEN}✅ Profile found for '{selected_author.get('name', 'N/A')}'.")
-            
-            except MaxTriesExceededException:
-                print(f"\n{Fore.RED}{Style.BRIGHT}❌ BLOCK DETECTED BY GOOGLE ❌")
-                print(f"{Fore.YELLOW}Google has blocked the requests. Try again later or rotate IP.")
-                return
-            except Exception as e:
-                print(f"{Fore.RED}❌ Unexpected error fetching by ID.")
-                traceback.print_exc()
-                return
-        else:
-            print(f"{Fore.RED}❌ Invalid choice. Please enter 1 or 2.")
+        author_id = input(f"\n{Fore.YELLOW}Enter the Google Scholar Author ID{Style.DIM} ('help' for guidance):{Style.RESET_ALL}\n>").strip()
+        help_showed = False
+        if not author_id:
+            input(f"{Fore.RED}❌ Author ID cannot be empty. Returning to main menu.")
+            return
+        if author_id.lower().startswith("help"):
+            hm.show_author_search_help()
+            help_showed = True
+            return run_author_search()
+        
+        print(f"\n{Fore.CYAN}🔎 Fetching author profile for ID: {author_id}...{Style.RESET_ALL}")
+        try:
+            selected_author = scholarly.search_author_id(author_id)
+            print(f"{Fore.GREEN}✅ Profile found for '{selected_author.get('name', 'N/A')}'.")
+        
+        except MaxTriesExceededException:
+            print(f"\n{Fore.RED}{Style.BRIGHT}❌ BLOCK DETECTED BY GOOGLE ❌")
+            print(f"{Fore.YELLOW}Google has blocked the requests. Try again later or rotate IP.")
+            return
+        except Exception as e:
+            print(f"{Fore.RED}❌ Unexpected error fetching by ID.")
+            traceback.print_exc()
             return
 
         if not selected_author:
@@ -197,16 +197,73 @@ def run_author_search():
         author_details = scholarly.fill(selected_author, sections=['publications'])
         publications_stubs = author_details.get('publications', [])
         
-        print(f"{Fore.BLUE}ℹ️  Found {len(publications_stubs)} total publications. Now fetching full details for each.")
-        print(f"{Fore.YELLOW}⚠️  This next step will be slow and may take several minutes.")
+        total_found = len(publications_stubs)
+        print(f"{Fore.BLUE}ℹ️  Found {total_found} total publications.")
 
         if not publications_stubs:
             print(f"{Fore.YELLOW}⚠️  Since no publications were found, no files will be generated.")
             return
 
-        # Detailed fetch loop
+        # --- NEW: FILTER INPUTS ---
+        print(f"\n{Fore.CYAN}------------- Filter Options (Press Enter to skip) -------------{Style.RESET_ALL}")
+        
+        # 1. Min Citations
+        min_citations = 0
+        try: 
+            c_input = input(f"{Fore.MAGENTA}Minimum citations {Style.DIM}(default = 0):{Style.RESET_ALL} ").strip()
+            if c_input: min_citations = int(c_input)
+        except ValueError:
+            print(f"{Fore.RED}Invalid input. Using 0.")
+
+        # 2. Min Year
+        min_year = None
+        try:
+            y_input = input(f"{Fore.MAGENTA}Start Year {Style.DIM}(e.g. 2020):{Style.RESET_ALL} ").strip()
+            if y_input: min_year = int(y_input)
+        except ValueError:
+            print(f"{Fore.RED}Invalid input. Ignoring start year.")
+
+        # 3. Max Year
+        max_year = None
+        try:
+            y_input = input(f"{Fore.MAGENTA}End Year {Style.DIM}(e.g. 2025):{Style.RESET_ALL} ").strip()
+            if y_input: max_year = int(y_input)
+        except ValueError:
+            print(f"{Fore.RED}Invalid input. Ignoring end year.")
+
+        # --- NEW: APPLYING FILTERS ON STUBS ---
+        filtered_stubs = []
+        for pub in publications_stubs:
+            # Check Citations (Stubs usually have num_citations)
+            if pub.get('num_citations', 0) < min_citations:
+                continue
+
+            # Check Year (Stubs usually have pub_year inside bib)
+            pub_year = pub.get('bib', {}).get('pub_year')
+            
+            # Handle year filtering logic
+            if pub_year and str(pub_year).isdigit():
+                pub_year = int(pub_year)
+                if min_year and pub_year < min_year: continue
+                if max_year and pub_year > max_year: continue
+            elif (min_year or max_year):
+                # If filter is active but paper has NO year, exclude it to be safe
+                continue
+            
+            filtered_stubs.append(pub)
+
+        print(f"\n{Fore.BLUE}ℹ️  After filtering: {len(filtered_stubs)} papers remain (out of {total_found}).")
+        
+        if not filtered_stubs:
+            print(f"{Fore.YELLOW}⚠️  No papers matched your filters. Exiting.")
+            return
+
+        print(f"{Fore.YELLOW}⚠️  Now fetching full details.{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}This might take a while... grab a coffee! ☕{Style.RESET_ALL}\n")
+
+        # Detailed fetch loop (Using filtered list)
         filled_publications = []
-        for pub_stub in tqdm(publications_stubs, desc="Fetching Full Details"):
+        for pub_stub in tqdm(filtered_stubs, desc="Fetching Full Details"):
             try:
                 pub_filled = scholarly.fill(pub_stub)
                 filled_publications.append(pub_filled)
@@ -281,4 +338,5 @@ def run_author_search():
         traceback.print_exc()
     
     finally:
-        input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
+        if not help_showed:
+            input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")

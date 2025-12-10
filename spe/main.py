@@ -85,7 +85,7 @@ def get_unique_folder(base_folder):
                 count += 1
             new_folder = f"{base_folder}-{count}"
             os.makedirs(new_folder)
-            print(f"{Fore.GREEN}✅ Creating new folder '{new_folder}'.")
+            print(f"{Fore.GREEN}Creating new folder '{new_folder}'.")
             return new_folder
         elif choice == "2":
             print(f"{Fore.RED}🛑 Warning: Existing files in '{base_folder}' may be overwritten.")
@@ -118,7 +118,7 @@ def get_with_backoff(url, headers, max_retries=5):
 # ======================= ARXIV INTEGRATION =======================
 def run_arxiv_interface():
     """Handles the user input for Arxiv search and calls the module."""
-    print(f"\n{Fore.CYAN}--- arXiv Search Configuration ---{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}------------------ arXiv Search Configuration ------------------{Style.RESET_ALL}\n")
     
     # 1. Query
     while True:
@@ -139,7 +139,7 @@ def run_arxiv_interface():
 
     # 2. Configs
     try:
-        max_p_input = input(f"{Fore.MAGENTA}Max papers per query {Style.DIM}(default = 10):{Style.RESET_ALL} ")
+        max_p_input = input(f"\n{Fore.MAGENTA}Max papers per query {Style.DIM}(default = 10):{Style.RESET_ALL} ")
         max_papers = int(max_p_input) if max_p_input.strip() else 10
     except ValueError:
         max_papers = 10
@@ -158,7 +158,7 @@ def run_arxiv_interface():
     
     min_citations = 0
 
-    print(f"\n{Fore.LIGHTBLUE_EX}--- Search Summary ---")
+    print(f"\n{Fore.LIGHTBLUE_EX}------------------------ Search Summary ------------------------")
     print(f"{Fore.LIGHTBLUE_EX}🔧 Query expanded into {len(queries)} searches.")
     print(f"{Fore.LIGHTBLUE_EX}📊 Max papers per query: {max_papers}")
     if min_year or max_year:
@@ -177,12 +177,13 @@ def run_arxiv_interface():
     except Exception as e:
         print(f"{Fore.RED}❌ An unexpected error occurred in pyarxiv: {e}")
     
-    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+    input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
 
 # ======================= SEMANTIC SCHOLAR INTEGRATION =======================
 def run_bibliographic_search():
     """Main function to run the user interface and the search process (Semantic Scholar)."""
+    print(f"\n{Fore.CYAN}------------ Semantic Scholar Search Configuration -------------{Style.RESET_ALL}\n")
     while True:
         query_str = input(f"{Fore.YELLOW}Enter your query {Style.DIM}('help' for guidance):{Style.RESET_ALL}\n> ")
         if query_str.strip().lower() in ["help", "?"]:
@@ -227,11 +228,11 @@ def run_bibliographic_search():
         batch_size = 100
 
     try:
-        max_batches = int(input(f"{Fore.MAGENTA}Enter number of batches {Style.DIM}(default = 10):{Style.RESET_ALL} ") or 10)
+        max_batches = int(input(f"{Fore.MAGENTA}Enter number of batches {Style.DIM}(default = 1):{Style.RESET_ALL} ") or 10)
     except ValueError:
-        max_batches = 10
+        max_batches = 1
 
-    print(f"\n{Fore.LIGHTBLUE_EX}--- Search Summary ---")
+    print(f"\n{Fore.LIGHTBLUE_EX}------------------------ Search Summary ------------------------")
     print(f"{Fore.LIGHTBLUE_EX}🔧 Query expanded into {len(queries)} searches.")
     print(f"{Fore.LIGHTBLUE_EX}📊 Each search will run up to {max_batches} batches of {batch_size} papers.")
     print(f"{Fore.LIGHTBLUE_EX}➡️ Maximum total requests: {len(queries) * max_batches}\n")
@@ -253,6 +254,7 @@ def run_bibliographic_search():
         writer = csv.writer(file)
         writer.writerow(["Query", "Total Articles", "Filtered Articles"])
 
+    print(f"\n{Fore.YELLOW}This might take a while... grab a coffee! ☕{Style.RESET_ALL}")
     for query in queries:
         print(f"\n{Fore.BLUE}🔎 Searching: {Style.BRIGHT}{query}{Style.RESET_ALL}")
         total_paper = 0
@@ -317,7 +319,7 @@ def run_bibliographic_search():
     print(f"   please run {Fore.CYAN}Option 6 (Analyze Results){Style.RESET_ALL} from the main menu.")
     
     print(f"\n{Fore.GREEN}🏁 Finished.")
-    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+    input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
 def ensure_llama_installed():
     """
@@ -359,7 +361,7 @@ def main_menu():
         # Clear the terminal for a cleaner menu view
         os.system('cls' if os.name == 'nt' else 'clear')
         display_banner()
-        print(f"\n{Fore.CYAN}------------------ Main Menu ------------------\n")
+        print(f"\n{Fore.CYAN}-------------------------- Main Menu ---------------------------\n")
         print(f"{Fore.YELLOW}1. Run arXiv Search (Full Text + PDF)")
         print(f"{Fore.YELLOW}2. Run Semantic Scholar Search (Metadata Only)")
         print(f"{Fore.YELLOW}3. Search by Author (Google Scholar)")
@@ -387,16 +389,18 @@ def main_menu():
 
         # --- 4. AI FILTER (LLAMA) ---
         elif choice == "4":
+            print(f"\n{Fore.CYAN}---------------- Filter Papers with AI (Llama) -----------------{Style.RESET_ALL}")
             if ensure_llama_installed():
                 all_entries = os.listdir('.')
                 potential_folders = [d for d in all_entries if os.path.isdir(d) and (d.startswith("results") or d.startswith("arxiv_results"))]
                 
                 if not potential_folders:
                     print(f"{Fore.RED}❌ No result folders found. Please run a search first.")
-                    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                    input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
                     continue
 
                 print(f"\n{Fore.CYAN}Please choose a folder to filter:{Style.RESET_ALL}")
+
                 for i, folder_name in enumerate(potential_folders):
                     print(f"{Fore.YELLOW}{i+1}. {folder_name}")
                 
@@ -409,27 +413,27 @@ def main_menu():
                         else:
                             print(f"{Fore.RED}Invalid number. Please try again.")
                     except ValueError:
-                        print(f"{Fore.RED}Invalid input. Please enter a number.")
-                
+                        main_menu()
+
                 output_folder = get_unique_folder("llama_filtered")
                 print(f"\n{Fore.GREEN}✅ Starting AI-based filtering...")
                 try:
                     from . import llama_filter as lf
                     lf.filter_with_llama(input_folder, output_folder)
                     print(f"\n{Fore.GREEN}🏁 AI filtering finished. Check the '{output_folder}' folder for results.")
-                    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                    input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
                 except ImportError:
                     print(f"{Fore.RED}❌ Error: 'llama_filter.py' not found or failed to import.")
-                    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                    input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
                 except Exception as e:
                     print(f"{Fore.RED}❌ An error occurred during AI filtering: {e}")
-                    input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                    input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
             else:
                 input(f"\n{Fore.YELLOW}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
         # --- 5. CONTENT FILTER (PDF & CSV) ---
         elif choice == "5":
-            print(f"\n{Fore.CYAN}--- Filter Content (PDFs or CSVs) ---")
+            print(f"\n{Fore.CYAN}------------ Filter Content by Regex (PDFs or CSVs) ------------")
             
             # Select Folder
             all_entries = os.listdir('.')
@@ -437,7 +441,7 @@ def main_menu():
             
             if not potential_folders:
                 print(f"{Fore.RED}❌ No result folders found.")
-                input(f"\n{Fore.GREEN}Press Enter to return...{Style.RESET_ALL}")
+                input(f"\n{Fore.MAGENTA}Press Enter to return...{Style.RESET_ALL}")
                 continue
                 
             print(f"\n{Fore.CYAN}Select a folder to scan:{Style.RESET_ALL}")
@@ -445,7 +449,7 @@ def main_menu():
                 print(f"{Fore.YELLOW}{i+1}. {f}")
                 
             try:
-                idx = int(input(f"\n{Fore.CYAN}Enter selection: {Style.RESET_ALL}")) - 1
+                idx = int(input(f"\n{Fore.CYAN}Enter your choice: {Style.RESET_ALL}")) - 1
                 if 0 <= idx < len(potential_folders):
                     selected_folder = potential_folders[idx]
                     
@@ -483,8 +487,7 @@ def main_menu():
                     print(f"{Fore.RED}Invalid selection.")
             except ValueError:
                 print(f"{Fore.RED}Invalid input.")
-            
-            input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+                #input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
         # --- 6. ANALYZE RESULTS ---
         elif choice == "6":
@@ -493,14 +496,14 @@ def main_menu():
         # --- 7. GENERATE BIBTEX ---
         elif choice == "7":
             bg.scan_and_generate_bibtex()
-            input(f"\n{Fore.GREEN}Press Enter to return to the main menu...{Style.RESET_ALL}")
+            #input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
 
         # --- 8. SETUP LOCAL AI ---
         elif choice == "8":
-            print(f"\n{Fore.CYAN}--- Local AI Setup ---")
+            print(f"\n{Fore.CYAN}------------------------ Local AI Setup ------------------------")
             if importlib.util.find_spec("llama_cpp"):
                 print(f"{Fore.GREEN}✅ 'llama-cpp-python' is already installed and ready to use.")
-                input(f"\n{Fore.GREEN}Press Enter to return to main menu...{Style.RESET_ALL}")
+                input(f"\n{Fore.MAGENTA}Press Enter to return to main menu...{Style.RESET_ALL}")
             else:
                 ensure_llama_installed()
 
