@@ -5,7 +5,7 @@
 The system is engineered to streamline the workflow of gathering, filtering, and analyzing large volumes of academic literature.
 
 
-![Screenshot of the Synoptic Paper Engine main menu interface showing colored options in a terminal window.](image.png)
+![Screenshot of the Synoptic Paper Engine main menu interface showing colored options in a terminal window.](speMainMenu.png)
 
 -----
 
@@ -125,5 +125,6 @@ The query engine enforces strict syntax for precision.
 
   * **LLM Model:** The AI filtering module requires downloading a model file (approx. 1GB - 4GB) upon first use. This runs on the CPU but benefits from available RAM.
   * **API Rate Limits:** While the tool implements exponential backoff strategies, aggressive querying (excessive `OR` groups) may still trigger temporary API rate limits from Semantic Scholar or ArXiv.
+
 
 -----
