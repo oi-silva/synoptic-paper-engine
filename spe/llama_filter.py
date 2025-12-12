@@ -3,6 +3,7 @@
 import os
 import csv
 import sys
+import shutil # Added for file copying
 from colorama import Fore, Style, init
 from tqdm import tqdm
 
@@ -70,7 +71,7 @@ def get_user_criteria():
     print(f"\n{Fore.WHITE}What is the specific Research Topic? (e.g., 'Graphene production'):")
     topic = input(f"{Fore.GREEN}> {Style.RESET_ALL}")
     
-    print(f"\n{Fore.WHITE}List inclusion criteria (e.g., 'Must focus on experimental results, not theory'):")
+    print(f"\n{Fore.WHITE}List inclusion criteria (e.g., 'Must focus on experimental \nresults, not theory'):")
     criteria = input(f"{Fore.GREEN}> {Style.RESET_ALL}")
     
     return persona, topic, criteria
@@ -92,7 +93,8 @@ Is this paper relevant based on the criteria? Reply YES or NO.<|im_end|>
 def filter_with_llama(input_folder, output_folder):
     """
     Main entry point. 
-    Iterates through CSVs, runs inference, and saves approved entries.
+    Iterates through CSVs, runs inference, saves approved entries, 
+    and copies relevant PDFs to the output folder.
     """
     # 1. Setup Model
     model_path = download_model_if_needed()
@@ -111,7 +113,7 @@ def filter_with_llama(input_folder, output_folder):
         print(f"{Fore.RED}❌ No valid article CSV files found to process.")
         return
 
-    print(f"{Fore.YELLOW}📊 Calculating total workload...{Style.RESET_ALL}")
+    print(f"\n{Fore.YELLOW}📊 Calculating total workload...{Style.RESET_ALL}")
     total_articles = 0
     for filename in csv_files:
         try:
@@ -124,19 +126,26 @@ def filter_with_llama(input_folder, output_folder):
 
     output_csv = os.path.join(output_folder, "llama_filtered_articles.csv")
     
+    # Create subfolder for approved PDFs
+    if input_folder.startswith("arxiv_"):
+        approved_pdfs_dir = os.path.join(output_folder, "approved_pdfs")
+        os.makedirs(approved_pdfs_dir, exist_ok=True)
+
     total_processed = 0
     approved_count = 0
+    copied_pdfs = 0
     
     print(f"\n{Fore.GREEN}⚡ Starting Inference on {total_articles} articles...{Style.RESET_ALL}")
     
     with open(output_csv, 'w', newline='', encoding='utf-8') as outfile:
         # Initialize Writer
-        fieldnames = ["Title", "Year", "Citations", "Authors", "URL", "Abstract", "AI_Decision"]
+        # Added 'Local_PDF_Copy' to track where the file went
+        fieldnames = ["Title", "Year", "Citations", "Authors", "URL", "Abstract", "AI_Decision", "Local_PDF_Copy"]
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
         
         # Initialize Progress Bar
-        with tqdm(total=total_articles, unit="paper", desc="AI Analysis", colour="green") as pbar:
+        with tqdm(total=total_articles, unit="paper", desc="AI Analysis", colour="green", ncols=65, bar_format='{l_bar}{bar}| [{elapsed}]') as pbar:
             for filename in csv_files:
                 file_path = os.path.join(input_folder, filename)
                 
@@ -147,9 +156,10 @@ def filter_with_llama(input_folder, output_folder):
                         # --- NORMALIZATION ---
                         title = row.get("Title") or row.get("title")
                         abstract = row.get("Abstract") or row.get("summary") or row.get("abstract")
+                        local_path = row.get("local_path") # ArXiv results usually have this
                         
                         if not title or not abstract:
-                            pbar.update(1) # Update progress even if skipped
+                            pbar.update(1) 
                             continue
                             
                         save_row = {
@@ -158,7 +168,8 @@ def filter_with_llama(input_folder, output_folder):
                             "Citations": row.get("Citations") or row.get("citationCount") or 0,
                             "Authors": row.get("Authors") or row.get("authors"),
                             "URL": row.get("URL") or row.get("pdf_url") or row.get("url"),
-                            "Abstract": abstract
+                            "Abstract": abstract,
+                            "Local_PDF_Copy": "" # Default empty
                         }
 
                         # --- INFERENCE ---
@@ -171,6 +182,20 @@ def filter_with_llama(input_folder, output_folder):
                         
                         if clean_decision == "YES":
                             save_row["AI_Decision"] = "YES"
+                            
+                            # --- PDF COPY LOGIC ---
+                            # If the original CSV indicates a local PDF path and the file exists
+                            if local_path and os.path.exists(local_path):
+                                try:
+                                    pdf_filename = os.path.basename(local_path)
+                                    dest_path = os.path.join(approved_pdfs_dir, pdf_filename)
+                                    shutil.copy2(local_path, dest_path)
+                                    save_row["Local_PDF_Copy"] = dest_path
+                                    copied_pdfs += 1
+                                except Exception as e:
+                                    # Non-blocking error logging
+                                    pass
+
                             writer.writerow(save_row)
                             outfile.flush()
                             approved_count += 1
@@ -181,6 +206,8 @@ def filter_with_llama(input_folder, output_folder):
     print(f"\n{Fore.GREEN}🏁 Filtering Complete!{Style.RESET_ALL}")
     print(f"Processed: {total_processed}")
     print(f"Approved: {approved_count}")
+    if input_folder.startswith("arxiv_"):
+        print(f"PDFs Copied: {copied_pdfs}")
     print(f"Results saved in: {output_csv}")
 
     # --- CROSS VALIDATION STEP ---

@@ -92,7 +92,7 @@ class ArxivTool:
         # --- UPDATE: PROGRESS BAR ---
         # Using tqdm to wrap the loop. 'unit' defines the item label (e.g., 5/10 pdfs)
         # Internal print statements removed to keep the terminal clean.
-        with tqdm(total=unique_count, desc="Downloading PDFs", unit="pdf", colour="green") as pbar:
+        with tqdm(total=unique_count, desc="Downloading PDFs", unit="pdf", colour="green", ncols=65, bar_format='{l_bar}{bar}| [{elapsed}]') as pbar:
             for entry_id, data in all_results.items():
                 safe_title = sanitize_filename(data['title'])
                 pdf_filename = f"{safe_title}.pdf"

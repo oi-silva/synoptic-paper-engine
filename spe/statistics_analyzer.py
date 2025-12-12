@@ -30,6 +30,12 @@ STOPWORDS = {
     'abstract', 'figure', 'table', 'data', 'analysis', 'based', 'using', 'also', 'however'
 }
 
+def print_header(title, width=64, color=Fore.CYAN, filler='.'):
+
+    formatted_title = f" {title} ".center(width, filler)
+    
+    print(f"\n{color}{Style.BRIGHT}{formatted_title}{Style.RESET_ALL}")
+
 def get_output_filepath(directory, filename):
     """
     Returns the file path. Ensures the directory exists.
@@ -44,7 +50,8 @@ def display_header(title):
     print(f"{Fore.CYAN}{Style.BRIGHT}{'=' * 64}{Style.RESET_ALL}")
 
 def display_top_items(title, counter, top_n=5):
-    print(f"\n{Fore.YELLOW}--- {title} (Top {top_n}) ---{Style.RESET_ALL}")
+    #print(f"\n{Fore.YELLOW}--- {title} (Top {top_n}) ---{Style.RESET_ALL}")
+    print_header(f"{title} (Top {top_n})", color=Fore.YELLOW)
     if not counter:
         print(f"{Fore.WHITE}No data to display.")
         return
@@ -317,28 +324,30 @@ def analyze_general_csv_folder(folder_path):
         print(f"{Fore.YELLOW}⚠️ Matplotlib not found. Charts will not be generated.")
 
     # Output Summary to Console
-    print(f"\n{Fore.WHITE}--- Overall Summary ---")
+    print_header("Overall Summary", width=64, color=Fore.WHITE, filler='.')
+    #print(f"\n{Fore.WHITE}--- Overall Summary ---")
     print(f"{Fore.GREEN}Total Articles Analyzed: {Style.BRIGHT}{total_articles}")
     print(f"{Fore.GREEN}Unique Articles Found: {Style.BRIGHT}{len(processed_titles)}")
 
     display_top_items("Most Productive Years", year_counts)
     display_top_items("Most Prolific Authors", author_counts)
 
-    print(f"\n{Fore.YELLOW}--- Top {5} Most Cited Papers ---{Style.RESET_ALL}")
+    print_header(f"Top {5} Most Cited Papers", width=64, color=Fore.YELLOW, filler='.')
+    #print(f"\n{Fore.YELLOW}--- Top {5} Most Cited Papers ---{Style.RESET_ALL}")
     
     if contains_arxiv_data and not any(p['citations'] > 0 for p in sorted_papers):
         print(f"{Fore.WHITE}Note: ArXiv papers do not contain citation data via API.")
         print(f"{Fore.WHITE}Showing most recent papers instead:")
         recent_papers = sorted(all_papers, key=lambda x: x.get('year', 0), reverse=True)[:5]
         for i, paper in enumerate(recent_papers):
-             print(f"{Fore.WHITE}{i+1}. {Fore.GREEN}{paper['title'][:67]}... \n   {Style.DIM}{Fore.WHITE}└─ Source: {paper['source']}{Style.RESET_ALL}")
+             print(f"{Fore.WHITE}{i+1}. {Fore.GREEN}{paper['title'][:58]}... \n   {Style.DIM}{Fore.WHITE}└─ Source: {paper['source']}{Style.RESET_ALL}")
     
     elif not sorted_papers:
         print(f"{Fore.WHITE}No papers found.")
     else:
         for i, paper in enumerate(sorted_papers[:5]):
             title = paper['title']
-            if len(title) > 70: title = title[:67] + "..."
+            if len(title) > 58: title = title[:58] + "..."
             cit_info = f"Citations: {paper['citations']}"
             print(f"{Fore.WHITE}{i+1}. {Fore.GREEN}{title} \n   {Style.DIM}{Fore.WHITE}└─ {cit_info} | Source: {paper['source']}{Style.RESET_ALL}")
 
@@ -503,7 +512,7 @@ def run_analysis_interface():
                 # Handles 'results', 'arxiv_results' and subfolders in 'content_filtered_csv'
                 analyze_general_csv_folder(selected_folder)
                 
-            input(f"\n{Fore.GREEN}Press Enter to return...{Style.RESET_ALL}")
+            input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
         else:
             print(f"{Fore.RED}Invalid number.")
     except ValueError:

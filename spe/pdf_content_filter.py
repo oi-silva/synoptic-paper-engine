@@ -128,7 +128,7 @@ def display_stats(stats):
     """Displays filtering statistics in a clean, list-based format."""
     total = sum(stats.values())
     
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}=== Filtering Summary ==={Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}====== Filtering Summary ======{Style.RESET_ALL}")
     print(f"   {Fore.GREEN}• High Relevance   : {stats['High']:>4}")
     print(f"   {Fore.YELLOW}• Medium Relevance : {stats['Medium']:>4}")
     print(f"   {Fore.WHITE}• Low Relevance    : {stats['Low']:>4}")
@@ -180,7 +180,7 @@ def run_csv_content_filter(input_folder, user_query_string):
     headers_written = {"High": False, "Medium": False, "Low": False}
 
     # Initialize Progress Bar
-    with tqdm(total=total_rows, desc="Filtering Content", unit="paper", colour="green") as pbar:
+    with tqdm(total=total_rows, desc="Filtering Content", unit="paper", colour="green", ncols=65, bar_format='{l_bar}{bar}| [{elapsed}]') as pbar:
         for filename in csv_files:
             filepath = os.path.join(input_folder, filename)
             
@@ -304,7 +304,7 @@ def run_content_filter(input_folder, user_query_string):
     csv_fieldnames = ["Title", "Relevance_Score", "Original_Path"] 
 
     # --- PROGRESS BAR ---
-    with tqdm(total=len(pdf_files), desc="Scanning PDFs", unit="pdf", colour="green") as pbar:
+    with tqdm(total=len(pdf_files), desc="Scanning PDFs", unit="pdf", colour="green", ncols=65, bar_format='{l_bar}{bar}| [{elapsed}]') as pbar:
         for i, filename in enumerate(pdf_files):
             pdf_path = os.path.join(input_folder, filename)
             full_text = extract_text_from_pdf(pdf_path)

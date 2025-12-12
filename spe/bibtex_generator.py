@@ -260,6 +260,7 @@ def scan_and_generate_bibtex():
         print(f"\n{Fore.CYAN}{Style.BRIGHT}✅ Success!{Style.RESET_ALL}")
         print(f"{Fore.WHITE}File created: {Fore.GREEN}{output_filename}")
         print(f"{Fore.WHITE}Total unique references: {Fore.GREEN}{total_entries}")
-
+        input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
     except Exception as e:
          print(f"{Fore.RED}❌ Critical error writing bib file: {e}{Style.RESET_ALL}")
+         input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")

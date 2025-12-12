@@ -10,6 +10,7 @@ from tqdm import tqdm
 from colorama import init, Fore, Style
 import subprocess
 import importlib.util
+import shutil
 
 # Imports relative to the current package
 from . import parse_query as pq
@@ -26,6 +27,7 @@ init(autoreset=True)
 
 # ======================= Configuration =======================
 APP_NAME = "Synoptic Paper Engine"
+APP_VERSION = "v0.3"
 USER_AGENT = "Synoptic-Paper-Engine/1.0"
 API_KEY = None  
 
@@ -41,7 +43,7 @@ def display_banner():
                    ██████╗ ██████╔╝ ██████╗
                    ╚═══██║ ██╔═══╝  ██╔═══╝
                    ██████║ ██║      ███████╗
-                   ╚═════╝ ╚═╝ {Fore.LIGHTBLACK_EX}v0.2{Style.RESET_ALL}{Fore.CYAN}{Style.BRIGHT} ╚══════╝
+                   ╚═════╝ ╚═╝ {Fore.LIGHTBLACK_EX}{APP_VERSION}{Style.RESET_ALL}{Fore.CYAN}{Style.BRIGHT} ╚══════╝
 """
     
     tool_name = "Synoptic Paper Engine\n"
@@ -76,9 +78,16 @@ def get_unique_folder(base_folder):
         os.makedirs(base_folder)
         return base_folder
 
-    print(f"\n{Fore.YELLOW}⚠️  The folder '{base_folder}' already exists.")
+    print(f"\n{' DIRECTORY CONFLICT '.center(64, '.')}{Style.RESET_ALL}")
+        
+    print(f"\nThe folder {Fore.CYAN}'{base_folder}'{Style.RESET_ALL} already exists.")
+    print(f"{Fore.WHITE}Please choose an action:{Style.RESET_ALL}\n")
+    
+    print(f"   {Fore.GREEN}1.{Style.RESET_ALL} Create a new folder (preserve old data)")
+    print(f"   {Fore.RED}2.{Style.RESET_ALL} Overwrite existing files (destructive)")
+    print(f"   0. Abort operation")
     while True:
-        choice = input(f"{Fore.YELLOW}Do you want to (1) Create a new folder or (2) Overwrite existing files?{Style.RESET_ALL} ")
+        choice = input(f"\n{Fore.YELLOW}Enter your choice (0-2): {Style.RESET_ALL}").strip()
         if choice == "1":
             count = 1
             while os.path.exists(f"{base_folder}-{count}"):
@@ -87,9 +96,32 @@ def get_unique_folder(base_folder):
             os.makedirs(new_folder)
             print(f"{Fore.GREEN}Creating new folder '{new_folder}'.")
             return new_folder
+        
         elif choice == "2":
-            print(f"{Fore.RED}🛑 Warning: Existing files in '{base_folder}' may be overwritten.")
+            print(f"\n{Fore.RED}{Style.BRIGHT}🛑  FINAL WARNING: This will permanently delete all files in \n   '{base_folder}'.{Style.RESET_ALL}")
+            confirm = input(f"{Fore.YELLOW}Press [ENTER] to confirm deletion or type 'no' to return > {Style.RESET_ALL}")
+
+            if confirm.lower().strip() in ['no', 'n', 'cancel']:
+                print(f"{Fore.YELLOW}Action canceled.{Style.RESET_ALL}")
+                continue
+            print(f"\n{Fore.YELLOW}➜  Cleaning up '{base_folder}'...{Style.RESET_ALL}")
+            try:
+                if os.path.exists(base_folder):
+                    shutil.rmtree(base_folder)
+                
+                os.makedirs(base_folder)
+                
+                print(f"{Fore.GREEN}✅ Folder Reset: All old files were deleted.{Style.RESET_ALL}")
+            
+            except OSError as e:
+                print(f"{Fore.RED}❌ Error deleting folder (File might be in use): {e}{Style.RESET_ALL}")
+                return base_folder
+
             return base_folder
+        
+        elif choice == "0":
+            print(f"{Fore.MAGENTA}Operation aborted by user. Returning to main menu.")
+            return main_menu()
         else:
             print(f"{Fore.RED}❌ Invalid choice. Please enter 1 or 2.")
 
@@ -200,7 +232,7 @@ def run_bibliographic_search():
         print(f"{Fore.RED}❌ Error parsing the query: {e}")
         return
 
-    use_citation_filter = input(f"\n{Fore.YELLOW}Do you want to set a minimum number of citations? (y/n): ").lower()
+    use_citation_filter = input(f"\n{Fore.MAGENTA}Do you want to set a minimum number of citations? (y/n): ").lower()
     min_citations = 0
     if use_citation_filter == "y":
         try:
@@ -209,7 +241,7 @@ def run_bibliographic_search():
             print(f"{Fore.YELLOW}⚠️ Invalid input. Using default = 0")
 
     min_year, max_year = None, None
-    use_year_filter = input(f"{Fore.YELLOW}Do you want to filter by year? (y/n): ").lower()
+    use_year_filter = input(f"{Fore.MAGENTA}Do you want to filter by year? (y/n): ").lower()
     if use_year_filter == "y":
         try:
             min_year_input = input(f"{Fore.GREEN}Enter minimum year (Press Enter to skip):{Style.RESET_ALL} ")
@@ -228,7 +260,7 @@ def run_bibliographic_search():
         batch_size = 100
 
     try:
-        max_batches = int(input(f"{Fore.MAGENTA}Enter number of batches {Style.DIM}(default = 1):{Style.RESET_ALL} ") or 10)
+        max_batches = int(input(f"{Fore.MAGENTA}Enter number of batches {Style.DIM}(default = 1):{Style.RESET_ALL} ") or 1)
     except ValueError:
         max_batches = 1
 
@@ -261,7 +293,7 @@ def run_bibliographic_search():
         filtered_papers = 0
         
         # --- PROGRESS BAR IMPLEMENTATION ---
-        with tqdm(range(max_batches), desc="Fetching Batches", unit="batch", colour="green") as pbar:
+        with tqdm(range(max_batches), desc="Fetching Batches", unit="batch", colour="green", ncols=65, bar_format='{l_bar}{bar}| [{elapsed}]') as pbar:
             for batch in pbar:
                 offset = batch * batch_size
                 url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={query}&limit={batch_size}&offset={offset}&fields={FIELDS}"
@@ -485,6 +517,8 @@ def main_menu():
                             pcf.run_csv_content_filter(selected_folder, user_query)
                 else:
                     print(f"{Fore.RED}Invalid selection.")
+                
+                input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")
             except ValueError:
                 print(f"{Fore.RED}Invalid input.")
                 #input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")

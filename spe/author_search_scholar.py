@@ -158,30 +158,43 @@ def get_unique_folder(base_folder):
 
 def run_author_search():
     """Main execution flow: search author -> filter stubs -> fetch pubs -> save CSV/TXT/BIB."""
+    # Initialize variables to avoid UnboundLocalError in finally block
+    author_id = ""
+    help_showed = False
+    
     try:
-        
         selected_author = None
         
         print(f"\n{Fore.CYAN}--------------------- Author Search Method ---------------------")
         
-        author_id = input(f"\n{Fore.YELLOW}Enter the Google Scholar Author ID{Style.DIM} ('help' for guidance):{Style.RESET_ALL}\n>").strip()
-        help_showed = False
+        author_id_input = input(f"\n{Fore.YELLOW}Enter the Google Scholar Author ID{Style.DIM} ('help' for guidance):{Style.RESET_ALL}\n>").strip()
+        author_id = author_id_input # Store for finally block check
+        
         if not author_id:
-            input(f"{Fore.RED}❌ Author ID cannot be empty. Returning to main menu.")
+            print(f"{Fore.RED}❌ Author ID cannot be empty.")
             return
+            
         if author_id.lower().startswith("help"):
             hm.show_author_search_help()
             help_showed = True
             return run_author_search()
         
         print(f"\n{Fore.CYAN}🔎 Fetching author profile for ID: {author_id}...{Style.RESET_ALL}")
+        
         try:
             selected_author = scholarly.search_author_id(author_id)
             print(f"{Fore.GREEN}✅ Profile found for '{selected_author.get('name', 'N/A')}'.")
         
         except MaxTriesExceededException:
             print(f"\n{Fore.RED}{Style.BRIGHT}❌ BLOCK DETECTED BY GOOGLE ❌")
-            print(f"{Fore.YELLOW}Google has blocked the requests. Try again later or rotate IP.")
+            print(f"{Fore.YELLOW}Google refused the connection. Try rotating your IP or waiting.")
+            return
+        except AttributeError:
+            # Captures the 'NoneType' error when Google returns a CAPTCHA page instead of a profile
+            print(f"\n{Fore.RED}{Style.BRIGHT}❌ PARSING ERROR (LIKELY BLOCKED) ❌")
+            print(f"{Fore.YELLOW}Google Scholar returned a page structure we couldn't parse.")
+            print(f"{Fore.YELLOW}This usually means you are hitting a CAPTCHA page.")
+            print(f"{Fore.WHITE}Suggestion: Change your IP (VPN/Mobile Data) or wait a few hours.")
             return
         except Exception as e:
             print(f"{Fore.RED}❌ Unexpected error fetching by ID.")
@@ -231,7 +244,7 @@ def run_author_search():
         except ValueError:
             print(f"{Fore.RED}Invalid input. Ignoring end year.")
 
-        # --- NEW: APPLYING FILTERS ON STUBS ---
+        # --- APPLYING FILTERS ON STUBS ---
         filtered_stubs = []
         for pub in publications_stubs:
             # Check Citations (Stubs usually have num_citations)
@@ -263,16 +276,24 @@ def run_author_search():
 
         # Detailed fetch loop (Using filtered list)
         filled_publications = []
-        for pub_stub in tqdm(filtered_stubs, desc="Fetching Full Details"):
+        for pub_stub in tqdm(filtered_stubs, desc="Fetching details", colour="green", ncols=65, bar_format='{l_bar}{bar}| [{elapsed}]'):
             try:
                 pub_filled = scholarly.fill(pub_stub)
                 filled_publications.append(pub_filled)
+            except AttributeError:
+                 # Catch Attribute Error during the fill loop (sign of blocking)
+                 tqdm.write(f"{Fore.RED}❌ Blocked while fetching details. Stopping early.")
+                 break
             except Exception as e:
                 tqdm.write(f"{Fore.RED}❌ Error fetching details for '{pub_stub.get('bib', {}).get('title', 'Unknown Paper')}': {e}")
                 continue
         
         # Sort by year descending
         filled_publications.sort(key=lambda p: int(p.get('bib', {}).get('pub_year', 0) or 0), reverse=True)
+
+        if not filled_publications:
+             print(f"{Fore.RED}❌ No publication details could be fetched (likely blocked).")
+             return
 
         # IO Operations
         output_folder = get_unique_folder("author_results")
@@ -326,9 +347,6 @@ def run_author_search():
             processed_keys = set()
             for pub in filled_publications:
                 bib_entry = format_publication_bibtex(pub)
-                
-                # Simple check to avoid exact duplicate keys (though generate_citation_key logic usually handles this via year/title)
-                # If needed, a more robust key collision handler could be added here.
                 file.write(bib_entry + "\n")
 
         print(f"\n{Fore.GREEN}🏁 Finished. CSV, ABNT TXT, and BibTeX files saved successfully.{Style.RESET_ALL}")
@@ -338,5 +356,6 @@ def run_author_search():
         traceback.print_exc()
     
     finally:
-        if not help_showed:
+        # Check if help wasn't shown AND author_id is not empty before asking to press Enter
+        if not help_showed and author_id:
             input(f"\n{Fore.MAGENTA}Press Enter to return to the main menu...{Style.RESET_ALL}")

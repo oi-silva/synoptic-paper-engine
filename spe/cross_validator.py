@@ -181,10 +181,10 @@ def run_comparison(current_output_folder, current_filter_type):
     print(f"\n{Fore.WHITE}{Style.BRIGHT}📊 Comparison Report ({current_filter_type} vs {target_type}){Style.RESET_ALL}")
     print(f"   • Total Approved by {current_filter_type:<6}: {len(titles_current)}")
     print(f"   • Total Approved by {target_type:<6}: {len(titles_target)}")
-    print(f"   ----------------------------------------")
+    print(f"   ---------------------------------")
     print(f"   • {Fore.GREEN}AGREEMENT (Both Approved) : {len(agreement)}{Style.RESET_ALL}")
-    print(f"   • {Fore.YELLOW}Unique to {current_filter_type:<14}: {len(only_current)}{Style.RESET_ALL}")
-    print(f"   • {Fore.MAGENTA}Unique to {target_type:<14}: {len(only_target)}{Style.RESET_ALL}")
+    print(f"   • {Fore.YELLOW}Unique to {current_filter_type:<14}  : {len(only_current)}{Style.RESET_ALL}")
+    print(f"   • {Fore.MAGENTA}Unique to {target_type:<14}  : {len(only_target)}{Style.RESET_ALL}")
 
     # Save report to text file
     report_path = os.path.join(current_output_folder, "comparison_report.txt")
@@ -196,4 +196,4 @@ def run_comparison(current_output_folder, current_filter_type):
         f.write(f"Only in {current_filter_type}: {len(only_current)}\n")
         f.write(f"Only in {target_type}: {len(only_target)}\n")
     
-    print(f"\n{Fore.CYAN}📄 Detailed report saved to: {report_path}{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}📄 Detailed report saved to:\n  {report_path}{Style.RESET_ALL}")
