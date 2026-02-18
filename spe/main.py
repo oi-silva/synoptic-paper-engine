@@ -364,11 +364,11 @@ def ensure_llama_installed():
     if llama_spec is not None:
         return True # Already installed
 
-    print("\n⚠️  Local AI feature (Llama) is not installed.")
+    print("\n⚠️  Local AI feature is not installed.")
     print("This is required to run models on your local machine.")
     
     while True:
-        choice = input(">> Do you want to download and install Llama support now? (y/n): ").lower().strip()
+        choice = input(">> Do you want to download and install the AI model support now? (y/n): ").lower().strip()
         
         if choice == 'n':
             print("Okay, running in lightweight mode (without local AI).")
@@ -397,11 +397,11 @@ def main_menu():
         print(f"{Fore.YELLOW}1. Run arXiv Search (Full Text + PDF)")
         print(f"{Fore.YELLOW}2. Run Semantic Scholar Search (Metadata Only)")
         print(f"{Fore.YELLOW}3. Search by Author (Google Scholar)")
-        print(f"{Fore.YELLOW}4. Filter Papers with AI (Llama)")
+        print(f"{Fore.YELLOW}4. Filter Papers with AI")
         print(f"{Fore.YELLOW}5. Filter Content by Regex (PDFs or CSVs)") 
         print(f"{Fore.YELLOW}6. Analyze Results (Graphs & Stats)")
         print(f"{Fore.YELLOW}7. Generate BibTeX File (LaTeX)")
-        print(f"{Fore.YELLOW}8. Setup Local AI (Llama)")
+        print(f"{Fore.YELLOW}8. Setup Local AI")
         print(f"{Fore.YELLOW}9. Help / Information")
         print(f"{Fore.YELLOW}0. Exit")
         
@@ -421,7 +421,7 @@ def main_menu():
 
         # --- 4. AI FILTER (LLAMA) ---
         elif choice == "4":
-            print(f"\n{Fore.CYAN}---------------- Filter Papers with AI (Llama) -----------------{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}---------------- Filter Papers with AI (Qwen) -----------------{Style.RESET_ALL}")
             if ensure_llama_installed():
                 all_entries = os.listdir('.')
                 potential_folders = [d for d in all_entries if os.path.isdir(d) and (d.startswith("results") or d.startswith("arxiv_results"))]
@@ -553,4 +553,5 @@ def main_menu():
             print(f"{Fore.RED}❌ Invalid choice. Please enter a number from 0 to 9.")
 
 if __name__ == "__main__":
+
     main_menu()
